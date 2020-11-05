@@ -7,7 +7,7 @@
     <key>ProgramArguments</key>
     <array>
         <string>path/to/python3</string>
-        <string>path/to/music-rpc-?.py</string>
+        <string>path/to/music-rpc-.py</string>
     </array>
     <key>KeepAlive</key>
     <true/>
