@@ -5,7 +5,6 @@ import time, os, subprocess
 # Initialize RPC
 client_id = "773825528921849856" # DO NOT CHANGE
 RPC = Presence(client_id)  # Initialize the Presence client
-RPC.connect() # Start the handshake loop
 
 # Variables
 appicon = "appicon" # DO NOT CHANGE
@@ -45,6 +44,7 @@ def music_state():
     if music_sessions_as() > 0 : return music_state_as()
     else: return "stopped"
 
+RPC.connect() # Start the handshake loop
 while True: # The presence will stay on as long as the program is running
     state = music_state()
     if state=="playing":

@@ -37,7 +37,7 @@ def music_info_as():
             "-e", "get {name, artist, album, year, duration} of current track & {player position}",
             "-e", "end tell"], capture_output=True).stdout.decode('utf-8').rstrip().split(", ")
 
-# Return "playing","paused" or "stopped" at each call whenever Apple Music is running or not
+# Return "playing" or "stopped" at each call whenever Apple Music is running or not
 def music_state():
     if music_sessions_as() > 0 : return music_state_as()
     else: return "stopped"
