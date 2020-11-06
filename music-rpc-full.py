@@ -41,13 +41,13 @@ def music_info_as():
 
 # Return "playing","paused" or "stopped" at each call whenever Apple Music is running or not
 def music_state():
-    if music_sessions_as() > 0 : return music_state_as()
+    if music_sessions_as() > 0: return music_state_as()
     else: return "stopped"
 
 RPC.connect() # Start the handshake loop
 while True: # The presence will stay on as long as the program is running
     state = music_state()
-    if state=="playing":
+    if state == "playing":
         infos = music_info_as()
         RPC.update(
         large_image = appicon,
@@ -57,7 +57,7 @@ while True: # The presence will stay on as long as the program is running
         details = infos[0],
         state = infos[1] + " — " + infos[2] + " (" + infos[3] + ")",
         end = time.time() + float(infos[4]) - float(infos[5]))
-    elif state=="paused":
+    elif state == "paused":
         infos = music_info_as()
         RPC.update(
         large_image = appicon,

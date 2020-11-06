@@ -39,15 +39,15 @@ def music_info_as():
 
 # Return "playing" or "stopped" at each call whenever Apple Music is running or not
 def music_state():
-    if music_sessions_as() > 0 : return music_state_as()
+    if music_sessions_as() > 0: return music_state_as()
     else: return "stopped"
 
 while True: # The presence will stay on as long as the program is running
     # If music is playing, connect to RPC
-    if music_state()=="playing" :
+    if music_state() == "playing":
         RPC.connect()
         # Update card while still playing music
-        while music_state()=="playing":
+        while music_state() == "playing":
             infos = music_info_as()
             RPC.update(
             large_image = appicon, # DO NOT CHANGE
