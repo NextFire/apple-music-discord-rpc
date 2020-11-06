@@ -12,9 +12,6 @@ RPC.connect() # Start the handshake loop
 path = os.path.dirname(os.path.realpath(__file__)) # Path of script directory
 music_state_script = path+"/music-state.scpt" # Apple Music state AppleScript location
 music_info_script = path+"/music-info.scpt" # Apple Music proprieties AppleScript location
-appicon = "appicon" # DO NOT CHANGE
-appicon_desc = "Apple Music (macOS)"
-state = "stopped"
 
 # state = "playing","paused" or "stopped" at each call
 def music_state():
@@ -37,13 +34,13 @@ while True:  # The presence will stay on as long as the program is running
         while state=="playing":
             infos = subprocess.run(["osascript", music_info_script], capture_output=True).stdout.decode('utf-8').rstrip().split(", ")
             RPC.update(
-            large_image = appicon,
-            large_text = appicon_desc,
+            large_image = "appicon", # DO NOT CHANGE
+            large_text = "Apple Music (macOS)",
             small_image = state, # DO NOT CHANGE
-            small_text = state.capitalize(),
+            small_text = "Listening " + infos[0] + " by " + infos[1] + " from " + infos[2] + " (" + infos[3] + ")",
             details = infos[0],
             state = infos[1] + " — " + infos[2] + " (" + infos[3] + ")",
-            end = time.time()+float(infos[4])-float(infos[5]))
+            end = time.time() + float(infos[4]) - float(infos[5]))
             time.sleep(15)
             music_state()
         # Music stopped, close connection
