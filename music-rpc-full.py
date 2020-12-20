@@ -8,7 +8,7 @@ RPC = Presence(client_id)  # Initialize the Presence client
 
 # Variables
 appicon = "appicon" # DO NOT CHANGE
-appicon_desc = "Apple Music (macOS)"
+appicon_desc = "Apple Music for macOS"
 
 # Return number of Apple Music process running (int)
 def music_sessions_as():
@@ -53,7 +53,7 @@ while True: # The presence will stay on as long as the program is running
         large_image = appicon,
         large_text = appicon_desc,
         small_image = state, # DO NOT CHANGE
-        small_text = "Listening『" + infos[0] + "』by " + infos[1],
+        small_text = "Playing『" + infos[0] + "』by " + infos[1],
         details = infos[0],
         state = infos[1] + " — " + infos[2] + " (" + infos[3] + ")",
         end = time.time() + float(infos[4]) - float(infos[5]))
