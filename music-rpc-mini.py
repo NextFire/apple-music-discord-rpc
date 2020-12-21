@@ -49,15 +49,24 @@ while True: # The presence will stay on as long as the program is running
         # Update card while still playing music
         while music_state() == "playing":
             infos = music_info_as()
-            RPC.update(
-            large_image = appicon, # DO NOT CHANGE
-            large_text = appicon_desc,
-            small_image = "playing", # DO NOT CHANGE
-            small_text = "Playing『" + infos[0] + "』by " + infos[1] + " (" + infos[3] + ")",
-            details = infos[0],
-            state = infos[1] + " — " + infos[2] + " (" + infos[3] + ")",
-            end = time.time() + float(infos[4]) - float(infos[5]))
+            try:
+                RPC.update(
+                large_image = appicon,
+                large_text = appicon_desc,
+                small_image = "playing",
+                small_text = "Playing『" + infos[0] + "』by " + infos[1] + " (" + infos[3] + ")",
+                details = infos[0],
+                state = infos[1] + " — " + infos[2] + " (" + infos[3] + ")",
+                end = time.time() + float(infos[4]) - float(infos[5]))
+            except:
+                RPC.update(
+                large_image = appicon,
+                large_text = appicon_desc,
+                small_image = "playing",
+                small_text = "Playing",
+                details = "Apple Music is playing",
+                state = "Details unavailable")
             time.sleep(15)
         # Music stopped, close connection
         RPC.close()
-    time.sleep(30)
+    time.sleep(15)

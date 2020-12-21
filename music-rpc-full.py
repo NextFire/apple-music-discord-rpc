@@ -4,7 +4,7 @@ import time, os, subprocess
 
 # Initialize RPC
 client_id = "773825528921849856" # DO NOT CHANGE
-RPC = Presence(client_id)  # Initialize the Presence client
+RPC = Presence(client_id) # Initialize the Presence client
 
 # Variables
 appicon = "appicon" # DO NOT CHANGE
@@ -49,28 +49,46 @@ while True: # The presence will stay on as long as the program is running
     state = music_state()
     if state == "playing":
         infos = music_info_as()
-        RPC.update(
-        large_image = appicon,
-        large_text = appicon_desc,
-        small_image = state, # DO NOT CHANGE
-        small_text = "Playing『" + infos[0] + "』by " + infos[1],
-        details = infos[0],
-        state = infos[1] + " — " + infos[2] + " (" + infos[3] + ")",
-        end = time.time() + float(infos[4]) - float(infos[5]))
+        try:
+            RPC.update(
+            large_image = appicon,
+            large_text = appicon_desc,
+            small_image = "playing",
+            small_text = "Playing『" + infos[0] + "』by " + infos[1] + " (" + infos[3] + ")",
+            details = infos[0],
+            state = infos[1] + " — " + infos[2] + " (" + infos[3] + ")",
+            end = time.time() + float(infos[4]) - float(infos[5]))
+        except:
+            RPC.update(
+            large_image = appicon,
+            large_text = appicon_desc,
+            small_image = "playing",
+            small_text = "Playing",
+            details = "Apple Music is playing",
+            state = "Details unavailable")
     elif state == "paused":
         infos = music_info_as()
-        RPC.update(
-        large_image = appicon,
-        large_text = appicon_desc,
-        small_image = state, # DO NOT CHANGE
-        small_text = "Paused『" + infos[0] + "』by " + infos[1],
-        details = infos[0],
-        state = infos[1] + " — " + infos[2] + " (" + infos[3] + ")")
+        try:
+            RPC.update(
+            large_image = appicon,
+            large_text = appicon_desc,
+            small_image = "paused",
+            small_text = "Paused『" + infos[0] + "』by " + infos[1] + " (" + infos[3] + ")",
+            details = infos[0],
+            state = infos[1] + " — " + infos[2] + " (" + infos[3] + ")")
+        except:
+            RPC.update(
+            large_image = appicon,
+            large_text = appicon_desc,
+            small_image = "paused",
+            small_text = "Paused",
+            details = "Apple Music is paused",
+            state = "Details unavailable")
     else:
         RPC.update(
         large_image = appicon,
         large_text = appicon_desc,
-        small_image = state, # DO NOT CHANGE
+        small_image = "stopped",
         small_text = "Stopped",
-        details = "Nothing is playing")
+        details = "Apple Music is stopped")
     time.sleep(15)
