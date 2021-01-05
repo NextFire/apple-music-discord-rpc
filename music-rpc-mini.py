@@ -3,12 +3,12 @@ from pypresence import Presence
 import time, os, subprocess
 
 # Initialize RPC
-client_id = "773825528921849856" # DO NOT CHANGE
-RPC = Presence(client_id) # Initialize the Presence client
+CLIENT_ID = "773825528921849856" # DO NOT CHANGE
+RPC = Presence(CLIENT_ID) # Initialize the Presence client
 
-# Variables
-appicon = "appicon" # DO NOT CHANGE
-appicon_desc = "Apple Music for macOS"
+# Constants
+APPICON = "appicon" # DO NOT CHANGE
+APPICON_DESC = "Apple Music for macOS"
 
 # Return number of Apple Music process running (int)
 def music_sessions_as():
@@ -51,8 +51,8 @@ while True: # The presence will stay on as long as the program is running
             infos = music_info_as()
             try:
                 RPC.update(
-                large_image = appicon,
-                large_text = appicon_desc,
+                large_image = APPICON,
+                large_text = APPICON_DESC,
                 small_image = "playing",
                 small_text = "Playing『" + infos[0] + "』by " + infos[1] + " (" + infos[3] + ")",
                 details = infos[0],
@@ -60,8 +60,8 @@ while True: # The presence will stay on as long as the program is running
                 end = time.time() + float(infos[4]) - float(infos[5]))
             except:
                 RPC.update(
-                large_image = appicon,
-                large_text = appicon_desc,
+                large_image = APPICON,
+                large_text = APPICON_DESC,
                 small_image = "playing",
                 small_text = "Playing",
                 details = "Apple Music is playing",
