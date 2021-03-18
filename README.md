@@ -12,7 +12,7 @@
 
 ## Prerequisites
 * macOS Catalina or newer (with Apple Music app)
-* `python3` and `pypresence` module (`pip3 install pypresence`)
+* `python3` (>=3.7, prefer Homebrew install) and `pypresence` module (`pip3 install pypresence`)
 * Discord, obviously
 
 ## Usage
@@ -25,14 +25,14 @@
 
 ### Daemon mode
 #### Install
-1) Edit provided `moe.nichijou.music-rpc.plist` with your favorite editor:
+1) Edit provided `moe.yuru.music-rpc.plist` with your favorite editor:
 
 a) replace `path/to/python3` with absolute `python3` binary path (given by `which python3`)
 
 b) replace `path/to/music-rpc-.py` with absolute `music-rpc-full.py` or `music-rpc-full.py` path (alt+rightclick preferred `.py` in Finder to easily copy path)
 
-2) Move/Copy `moe.nichijou.music-rpc.plist` to `~/Library/LaunchAgents/` folder (create it if not already)
-3) Run `launchctl load ~/Library/LaunchAgents/moe.nichijou.music-rpc.plist`
+2) Move/Copy `moe.yuru.music-rpc.plist` to `~/Library/LaunchAgents/` folder (create it if not already)
+3) Run `launchctl load ~/Library/LaunchAgents/moe.yuru.music-rpc.plist`
 4) Play some music
 5) ...
 6) Check Discord
@@ -41,6 +41,6 @@ Now the Python script will be launched automatically at startup.
 
 #### Uninstall
 Run these commands:
-* `launchctl unload ~/Library/LaunchAgents/moe.nichijou.music-rpc.plist`
-* `rm ~/Library/LaunchAgents/moe.nichijou.music-rpc.plist`
+* `launchctl unload ~/Library/LaunchAgents/moe.yuru.music-rpc.plist`
+* `rm ~/Library/LaunchAgents/moe.yuru.music-rpc.plist`
 * `rm ~/Library/LaunchAgents/music-rpc-*.py`
