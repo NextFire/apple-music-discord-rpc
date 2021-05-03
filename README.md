@@ -1,6 +1,6 @@
 # apple-music-discord-rpc
 
-A Python3/pypresence + AppleScript based Discord Rich Presence client for Apple Music app on macOS (works well with local tracks, [maybe less with Apple Music](https://github.com/NextFire/apple-music-discord-rpc#known-issues))
+A Python3/pypresence + AppleScript based Discord Rich Presence client for Apple Music app on macOS (works well with local tracks, [maybe less with Apple Music streaming service](https://github.com/NextFire/apple-music-discord-rpc#known-issues))
 
 ## Features
 * Flex your music tastes to your online buddies
@@ -47,4 +47,4 @@ Run these commands:
 * `rm ~/Library/LaunchAgents/music-rpc-*.py`
 
 ## Known issues
-* Apple Music sometimes fails to transmit track informations through AppleScript, [blame Apple](https://github.com/NextFire/apple-music-discord-rpc/issues/1#issuecomment-748795840). If it is the case, *Details unavailable* will be shown on Discord.
+* Apple Music sometimes fails to transmit Apple Music streaming service track informations through AppleScript, [blame Apple](https://github.com/NextFire/apple-music-discord-rpc/issues/4). If it is the case, *Details unavailable* will be shown on Discord.
