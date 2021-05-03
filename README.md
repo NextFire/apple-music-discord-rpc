@@ -1,5 +1,6 @@
 # apple-music-discord-rpc
-> A Python3/pypresence + AppleScript based Discord Rich Presence client for Apple Music app on macOS (works for both local tracks and Apple Music streaming service)
+
+A Python3/pypresence + AppleScript based Discord Rich Presence client for Apple Music app on macOS (works well with local tracks, [maybe less with Apple Music](https://github.com/NextFire/apple-music-discord-rpc#known-issues))
 
 ## Features
 * Flex your music tastes to your online buddies
@@ -18,7 +19,7 @@
 ## Usage
 0) Clone repository
 ### Quick use
-1) Run `python3 music-rpc-full.py` or `python3 music-rpc-mini.py` (see above for difference)
+1) Run `python3 music-rpc-full.py` or `python3 music-rpc-mini.py` (see differences above)
 2) Play some music
 3) ...
 4) Check Discord
@@ -31,7 +32,7 @@ a) replace `path/to/python3` with absolute `python3` binary path (given by `whic
 
 b) replace `path/to/music-rpc-.py` with absolute `music-rpc-full.py` or `music-rpc-full.py` path (alt+rightclick preferred `.py` in Finder to easily copy path)
 
-2) Move/Copy `moe.yuru.music-rpc.plist` to `~/Library/LaunchAgents/` folder (create it if not already)
+2) Move/Copy `moe.yuru.music-rpc.plist` to `~/Library/LaunchAgents/` folder (create if it does not exist)
 3) Run `launchctl load ~/Library/LaunchAgents/moe.yuru.music-rpc.plist`
 4) Play some music
 5) ...
@@ -44,3 +45,6 @@ Run these commands:
 * `launchctl unload ~/Library/LaunchAgents/moe.yuru.music-rpc.plist`
 * `rm ~/Library/LaunchAgents/moe.yuru.music-rpc.plist`
 * `rm ~/Library/LaunchAgents/music-rpc-*.py`
+
+## Known issues
+* Apple Music sometimes fails to transmit track informations through AppleScript, [blame Apple](https://github.com/NextFire/apple-music-discord-rpc/issues/1#issuecomment-748795840). If it is the case, *Details unavailable* will be shown on Discord.
