@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>moe.yuru.music-rpc</string>
+  <key>WorkingDirectory</key>
+  <string>/absolute/path/to/cloned/repo</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/absolute/path/to/node</string>
+    <string>music-rpc.js</string>
+  </array>
+  <key>KeepAlive</key>
+  <true/>
+  <!-- <key>StandardErrorPath</key>
+  <string>music-rpc.log</string>
+  <key>StandardOutPath</key>
+  <string>music-rpc.log</string> -->
+</dict>
+</plist>
