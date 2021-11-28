@@ -4,22 +4,31 @@ const { Client } = require('discord-rpc');
 function main() {
   const rpc = new Client({ transport: 'ipc' });
   let timer;
-  rpc.on('connected', () => { setActivity(rpc); timer = setInterval(() => setActivity(rpc), 15e3); });
-  rpc.on('disconnected', () => { clearInterval(timer); main(); });
+  rpc.on('connected', () => {
+    setActivity(rpc);
+    timer = setInterval(() => setActivity(rpc), 15e3);
+  });
+  rpc.on('disconnected', () => {
+    clearInterval(timer);
+    main();
+  });
   rpc.login({ clientId: '773825528921849856' })
     .then(console.log)
-    .catch(e => { console.error(e); setTimeout(main, 15e3); });
-};
+    .catch(e => {
+      console.error(e);
+      setTimeout(main, 15e3);
+    });
+}
 
 main();
 
 function isOpen() {
   return run(() => Application('System Events').processes['Music'].exists());
-};
+}
 
 function getState() {
   return run(() => Application('Music').playerState());
-};
+}
 
 function getProps() {
   return run(() => {
@@ -29,7 +38,7 @@ function getProps() {
       playerPosition: music.playerPosition(),
     };
   });
-};
+}
 
 async function setActivity(rpc) {
   const open = await isOpen();
@@ -55,6 +64,6 @@ async function setActivity(rpc) {
       case 'stopped':
         rpc.clearActivity();
         break;
-    };
-  };
-};
+    }
+  }
+}
