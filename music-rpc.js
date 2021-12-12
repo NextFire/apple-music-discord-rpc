@@ -1,15 +1,18 @@
 const { run } = require('@jxa/run');
 const { Client } = require('discord-rpc');
 
+let rpc;
+let timer;
+
 function main() {
-  const rpc = new Client({ transport: 'ipc' });
-  let timer;
+  rpc = new Client({ transport: 'ipc' });
   rpc.on('connected', () => {
-    setActivity(rpc);
-    timer = setInterval(() => setActivity(rpc), 15e3);
+    setActivity();
+    timer = setInterval(setActivity, 15e3);
   });
   rpc.on('disconnected', () => {
     clearInterval(timer);
+    rpc.destroy().catch(console.error);
     main();
   });
   rpc.login({ clientId: '773825528921849856' })
@@ -40,7 +43,7 @@ function getProps() {
   });
 }
 
-async function setActivity(rpc) {
+async function setActivity() {
   const open = await isOpen();
   console.log('isOpen:', open);
   if (open) {
@@ -65,5 +68,7 @@ async function setActivity(rpc) {
         rpc.clearActivity();
         break;
     }
+  } else {
+    rpc.clearActivity();
   }
 }
