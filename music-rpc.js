@@ -55,7 +55,12 @@ async function searchSong(props) {
   };
 
   const result = await itunesAPI.searchItunes(options);
-  return [result.results[0].artworkUrl100, result.results[0].collectionViewUrl];
+  if (result.results.length !== 0) {
+    return [
+      result.results[0].artworkUrl100,
+      result.results[0].collectionViewUrl,
+    ];
+  } else return ['appicon', null];
 }
 
 async function setActivity() {
@@ -69,7 +74,7 @@ async function setActivity() {
         const props = await getProps();
         const artwork = await searchSong(props);
         console.log('props:', props);
-        rpc.setActivity({
+        const activity = {
           details: props.name,
           state:
             `${props.artist} — ${props.album}` +
@@ -81,13 +86,18 @@ async function setActivity() {
           largeImageText: 'Apple Music',
           smallImageKey: state,
           smallImageText: `${state[0].toUpperCase() + state.slice(1)}`,
-          buttons: [
+        };
+
+        if (!artwork[1]) {
+          activity.buttons = [
             {
               label: 'Listen on Apple Music',
               url: artwork[1],
             },
-          ],
-        });
+          ];
+        }
+
+        rpc.setActivity(activity);
         break;
       case 'paused':
       case 'stopped':
