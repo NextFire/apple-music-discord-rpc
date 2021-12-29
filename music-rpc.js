@@ -115,7 +115,6 @@ function setActivity() {
                         smallImageText: `${state[0].toUpperCase() + state.slice(1)}`,
                     };
                     if (infos.url) {
-                        // @ts-ignore
                         activity.buttons = [
                             {
                                 label: 'Listen on Apple Music',

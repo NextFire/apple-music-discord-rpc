@@ -1,6 +1,6 @@
 import '@jxa/global-type';
 import { run } from '@jxa/run';
-import { Client } from 'discord-rpc';
+import { Client, Presence } from 'discord-rpc';
 import ItunesSearch, {
   ItunesEntityMusic,
   ItunesMedia,
@@ -16,7 +16,7 @@ function main() {
     setActivity();
     timer = setInterval(setActivity, 15e3);
   });
-  // @ts-ignore
+  // @ts-ignore: undocumented event?
   rpc.on('disconnected', () => {
     clearInterval(timer);
     rpc.destroy().catch(console.error);
@@ -38,13 +38,13 @@ function isOpen(): Promise<boolean> {
 }
 
 function getState(): Promise<string> {
-  // @ts-ignore
+  // @ts-ignore: 'Music' replaced 'iTunes' on Catalina and later
   return run(() => (Application('Music') as Application._iTunes).playerState());
 }
 
 function getProps(): Promise<iTunesProps> {
   return run(() => {
-    // @ts-ignore
+    // @ts-ignore: 'Music' replaced 'iTunes' on Catalina and later
     const music = Application('Music') as Application._iTunes;
     return {
       ...music.currentTrack().properties(),
@@ -90,7 +90,7 @@ async function setActivity() {
         const infos = await searchAlbum(props);
         console.log('infos:', infos);
 
-        const activity = {
+        const activity: Presence = {
           details: props.name,
           state:
             `${props.artist} — ${props.album}` +
@@ -104,7 +104,6 @@ async function setActivity() {
           smallImageText: `${state[0].toUpperCase() + state.slice(1)}`,
         };
         if (infos.url) {
-          // @ts-ignore
           activity.buttons = [
             {
               label: 'Listen on Apple Music',
