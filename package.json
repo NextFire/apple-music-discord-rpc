@@ -5,5 +5,10 @@
   "dependencies": {
     "@jxa/run": "^1.3.4",
     "discord-rpc": "^4.0.1"
+  },
+  "prettier": {
+    "tabWidth": 2,
+    "semi": true,
+    "singleQuote": true
   }
 }

@@ -15,9 +15,10 @@ function main() {
     rpc.destroy().catch(console.error);
     main();
   });
-  rpc.login({ clientId: '773825528921849856' })
+  rpc
+    .login({ clientId: '773825528921849856' })
     .then(console.log)
-    .catch(e => {
+    .catch((e) => {
       console.error(e);
       setTimeout(main, 15e3);
     });
@@ -55,12 +56,19 @@ async function setActivity() {
         console.log('props:', props);
         rpc.setActivity({
           details: props.name,
-          state: `${props.artist} — ${props.album}` + (props.year ? ` (${props.year})` : ''),
-          endTimestamp: Math.ceil(Date.now() + (props.duration - props.playerPosition) * 1000),
+          state:
+            `${props.artist} — ${props.album}` +
+            (props.year ? ` (${props.year})` : ''),
+          endTimestamp: Math.ceil(
+            Date.now() + (props.duration - props.playerPosition) * 1000
+          ),
           largeImageKey: 'appicon',
           largeImageText: 'Apple Music for macOS',
           smallImageKey: state,
-          smallImageText: `${state[0].toUpperCase() + state.slice(1)}『${props.name}』by ${props.artist}` + (props.year ? ` (${props.year})` : ''),
+          smallImageText:
+            `${state[0].toUpperCase() + state.slice(1)}『${props.name}』by ${
+              props.artist
+            }` + (props.year ? ` (${props.year})` : ''),
         });
         break;
       case 'paused':
