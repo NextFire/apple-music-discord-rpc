@@ -68,7 +68,6 @@ async function setActivity() {
 			case "playing":
 				const props = await getProps();
 				const artwork = await searchSong(props);
-				console.log(artwork);
 				console.log("props:", props);
 				rpc.setActivity({
 					details: props.name,
