@@ -53,11 +53,11 @@ function getProps(): Promise<iTunesProps> {
   });
 }
 
-const infosCache = new Map<string, iTunesInfos>();
+const infosCache = new Map<number, iTunesInfos>();
 
 async function searchAlbum(props: iTunesProps): Promise<iTunesInfos> {
   const { id, artist, album } = props;
-  let infos = infosCache.get(id.toString());
+  let infos = infosCache.get(id);
   if (!infos) {
     const options = new ItunesSearchOptions({
       term: encodeURI(decodeURI(`${artist} ${album}`)),
@@ -69,7 +69,7 @@ async function searchAlbum(props: iTunesProps): Promise<iTunesInfos> {
     const artwork = result.results[0]?.artworkUrl100 ?? 'appicon';
     const url = result.results[0]?.collectionViewUrl ?? null;
     infos = { artwork, url };
-    infosCache.set(id.toString(), infos);
+    infosCache.set(id, infos);
   }
   return infos;
 }
