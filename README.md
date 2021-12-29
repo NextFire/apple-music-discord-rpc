@@ -9,7 +9,7 @@
 - Flex your music tastes to your online buddies
 - Can be started in background at login (_daemon mode_ - see below)
 - Minimalist: No status bar icon clutter and presence only shown when actually playing something
-- Shows album artworks (when found) (https://github.com/NextFire/apple-music-discord-rpc/pull/5)
+- Shows album artworks and links to Apple Music (when found) ([#5](https://github.com/NextFire/apple-music-discord-rpc/pull/5))
 
 ![](https://media.discordapp.net/attachments/527570331863613440/925854616560742491/collage.png)
 
