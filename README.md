@@ -9,8 +9,9 @@
 - Flex your music tastes to your online buddies
 - Can be started in background at login (_daemon mode_ - see below)
 - Minimalist: No status bar icon clutter and presence only shown when actually playing something
+- Shows album artworks (when found) (https://github.com/NextFire/apple-music-discord-rpc/pull/5)
 
-![](https://cdn.discordapp.com/attachments/527570331863613440/790922602926833694/Capture_decran_2020-12-22_a_13.43.56.png)
+![](https://media.discordapp.net/attachments/527570331863613440/925854616560742491/collage.png)
 
 ## Prerequisites
 
@@ -20,7 +21,7 @@
 
 ## Usage
 
-First, clone this repository and install node dependancies: `npm install`
+First, clone this repository and install node dependancies: `npm install --production`
 
 ### Quick use
 
@@ -46,6 +47,10 @@ b) replace `/absolute/path/to/node` with the absolute `node` binary path (given 
 6. Check Discord
 
 Now the node script will be automatically launched at login.
+
+#### Update
+
+Simply `git pull`, `npm install --production` and relaunch the script to get the latest changes.
 
 #### Uninstall
 
