@@ -74,7 +74,7 @@ function searchAlbum(props) {
     var _a, _b, _c, _d;
     return __awaiter(this, void 0, void 0, function* () {
         const { id, artist, album } = props;
-        let infos = infosCache.get(id.toString());
+        let infos = infosCache.get(id);
         if (!infos) {
             const options = new node_itunes_search_1.ItunesSearchOptions({
                 term: encodeURI(decodeURI(`${artist} ${album}`)),
@@ -86,7 +86,7 @@ function searchAlbum(props) {
             const artwork = (_b = (_a = result.results[0]) === null || _a === void 0 ? void 0 : _a.artworkUrl100) !== null && _b !== void 0 ? _b : 'appicon';
             const url = (_d = (_c = result.results[0]) === null || _c === void 0 ? void 0 : _c.collectionViewUrl) !== null && _d !== void 0 ? _d : null;
             infos = { artwork, url };
-            infosCache.set(id.toString(), infos);
+            infosCache.set(id, infos);
         }
         return infos;
     });
