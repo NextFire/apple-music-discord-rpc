@@ -1,5 +1,6 @@
-const { run } = require('@jxa/run');
-const { Client } = require('discord-rpc');
+const { run } = require("@jxa/run");
+const { Client } = require("discord-rpc");
+const itunesAPI = require("node-itunes-search");
 
 let rpc;
 let timer;
@@ -27,56 +28,74 @@ function main() {
 main();
 
 function isOpen() {
-  return run(() => Application('System Events').processes['Music'].exists());
+	return run(() => Application("System Events").processes["Music"].exists());
 }
 
 function getState() {
-  return run(() => Application('Music').playerState());
+	return run(() => Application("Music").playerState());
 }
 
 function getProps() {
-  return run(() => {
-    const music = Application('Music');
-    return {
-      ...music.currentTrack().properties(),
-      playerPosition: music.playerPosition(),
-    };
-  });
+	return run(() => {
+		const music = Application("Music");
+		return {
+			...music.currentTrack().properties(),
+			playerPosition: music.playerPosition()
+		};
+	});
+}
+
+async function searchSong(props) {
+	const { artist, album } = props;
+	const options = {
+		term: encodeURI(decodeURI(`${artist} ${album}`)),
+		media: "music",
+		entity: "album",
+		limit: 1
+	};
+
+	const result = await itunesAPI.searchItunes(options);
+	return [result.results[0].artworkUrl100, result.results[0].collectionViewUrl];
 }
 
 async function setActivity() {
-  const open = await isOpen();
-  console.log('isOpen:', open);
-  if (open) {
-    const state = await getState();
-    console.log('state:', state);
-    switch (state) {
-      case 'playing':
-        const props = await getProps();
-        console.log('props:', props);
-        rpc.setActivity({
-          details: props.name,
-          state:
-            `${props.artist} — ${props.album}` +
-            (props.year ? ` (${props.year})` : ''),
-          endTimestamp: Math.ceil(
-            Date.now() + (props.duration - props.playerPosition) * 1000
-          ),
-          largeImageKey: 'appicon',
-          largeImageText: 'Apple Music for macOS',
-          smallImageKey: state,
-          smallImageText:
-            `${state[0].toUpperCase() + state.slice(1)}『${props.name}』by ${
-              props.artist
-            }` + (props.year ? ` (${props.year})` : ''),
-        });
-        break;
-      case 'paused':
-      case 'stopped':
-        rpc.clearActivity();
-        break;
-    }
-  } else {
-    rpc.clearActivity();
-  }
+	const open = await isOpen();
+	console.log("isOpen:", open);
+	if (open) {
+		const state = await getState();
+		console.log("state:", state);
+		switch (state) {
+			case "playing":
+				const props = await getProps();
+				const artwork = await searchSong(props);
+				console.log(artwork);
+				console.log("props:", props);
+				rpc.setActivity({
+					details: props.name,
+					state:
+						`${props.artist} — ${props.album}` +
+						(props.year ? ` (${props.year})` : ""),
+					endTimestamp: Math.ceil(
+						Date.now() + (props.duration - props.playerPosition) * 1000
+					),
+					largeImageKey: artwork[0],
+					largeImageText: "Apple Music",
+					smallImageKey: state,
+					smallImageText: `${state[0].toUpperCase() + state.slice(1)}`,
+					buttons: [
+						{
+							label: "Listen on Apple Music",
+							url: artwork[1]
+						}
+					]
+				});
+				break;
+			case "paused":
+			case "stopped":
+				rpc.clearActivity();
+				break;
+		}
+	} else {
+		rpc.clearActivity();
+	}
 }
