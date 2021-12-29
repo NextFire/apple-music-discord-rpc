@@ -30,6 +30,10 @@ First, clone this repository and install node dependancies: `npm install --produ
 3. ...
 4. Check Discord
 
+### Update
+
+Simply `git pull`, `npm install --production` and relaunch the script to get the latest changes.
+
 ### Daemon mode
 
 #### Install
@@ -47,10 +51,6 @@ b) replace `/absolute/path/to/node` with the absolute `node` binary path (given 
 6. Check Discord
 
 Now the node script will be automatically launched at login.
-
-#### Update
-
-Simply `git pull`, `npm install --production` and relaunch the script to get the latest changes.
 
 #### Uninstall
 
