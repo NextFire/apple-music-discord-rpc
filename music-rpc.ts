@@ -90,18 +90,18 @@ async function setActivity() {
         const infos = await searchAlbum(props);
         console.log('infos:', infos);
 
+        const endTimestamp = Math.ceil(
+          Date.now() + (props.duration - props.playerPosition) * 1000
+        );
+        const year = props.year ? ` (${props.year})` : '';
+
         const activity: Presence = {
           details: props.name,
-          state:
-            `${props.artist} — ${props.album}` +
-            (props.year ? ` (${props.year})` : ''),
-          endTimestamp: Math.ceil(
-            Date.now() + (props.duration - props.playerPosition) * 1000
-          ),
+          state: `${props.artist} — ${props.album}${year}`,
+          endTimestamp,
           largeImageKey: infos.artwork,
-          largeImageText: 'Apple Music',
+          largeImageText: `${props.album}${year}`,
           smallImageKey: state,
-          smallImageText: `${state[0].toUpperCase() + state.slice(1)}`,
         };
         if (infos.url) {
           activity.buttons = [
