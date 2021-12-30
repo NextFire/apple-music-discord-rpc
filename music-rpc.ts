@@ -1,14 +1,18 @@
 import '@jxa/global-type';
 import { run } from '@jxa/run';
 import { Client, Presence } from 'discord-rpc';
+import * as fs from 'fs/promises';
 import ItunesSearch, {
   ItunesEntityMusic,
   ItunesMedia,
   ItunesSearchOptions,
 } from 'node-itunes-search';
 
+// Main part
+
 let rpc: Client;
-let timer: number;
+let timer: NodeJS.Timer;
+let infosCache: Map<number, iTunesInfos>;
 
 function main() {
   rpc = new Client({ transport: 'ipc' });
@@ -31,7 +35,22 @@ function main() {
     });
 }
 
-main();
+async function start() {
+  await fs
+    .readFile('infos.json', 'utf8')
+    .then((data) => {
+      infosCache = new Map(JSON.parse(data));
+    })
+    .catch((err) => {
+      console.error(err);
+      infosCache = new Map();
+    });
+  main();
+}
+
+start();
+
+// Utils functions
 
 function isOpen(): Promise<boolean> {
   return run(() => Application('System Events').processes['Music'].exists());
@@ -53,8 +72,6 @@ function getProps(): Promise<iTunesProps> {
   });
 }
 
-const infosCache = new Map<number, iTunesInfos>();
-
 async function searchAlbum(props: iTunesProps): Promise<iTunesInfos> {
   const { id, artist, album } = props;
   let infos = infosCache.get(id);
@@ -70,9 +87,20 @@ async function searchAlbum(props: iTunesProps): Promise<iTunesInfos> {
     const url = result.results[0]?.collectionViewUrl ?? null;
     infos = { artwork, url };
     infosCache.set(id, infos);
+
+    try {
+      await fs.writeFile(
+        'infos.json',
+        JSON.stringify(Array.from(infosCache.entries()), undefined, 2)
+      );
+    } catch (err) {
+      console.error(err);
+    }
   }
   return infos;
 }
+
+// Activity setter
 
 async function setActivity() {
   const open = await isOpen();
@@ -123,6 +151,8 @@ async function setActivity() {
     rpc.clearActivity();
   }
 }
+
+// TypeScript interfaces
 
 interface iTunesProps {
   id: number;

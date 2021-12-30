@@ -2,3 +2,4 @@
 node_modules/
 music-rpc.js
 music-rpc.log
+infos.json
