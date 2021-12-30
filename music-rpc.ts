@@ -129,7 +129,6 @@ async function setActivity() {
           endTimestamp,
           largeImageKey: infos.artwork,
           largeImageText: `${props.album}${year}`,
-          smallImageKey: state,
         };
         if (infos.url) {
           activity.buttons = [
