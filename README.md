@@ -21,7 +21,9 @@
 
 ## Usage
 
-First, clone this repository and install node dependancies: `npm install --production`
+### Compilation
+
+First, clone this repository and install node dependancies (`npm install`) then run `npm run build` to compile the TypeScript file to a node runnable JavaScript file.
 
 ### Quick use
 
@@ -32,7 +34,7 @@ First, clone this repository and install node dependancies: `npm install --produ
 
 ### Update
 
-Simply `git pull`, `npm install --production` and relaunch the script to get the latest changes.
+Simply `git pull`, `npm install`, `npm run build` and relaunch the script to get the latest changes.
 
 ### Daemon mode
 
