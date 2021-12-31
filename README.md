@@ -27,10 +27,11 @@ First, clone this repository and install node dependancies (`npm install`) then 
 
 ### Quick use
 
-1. `npm start`
-2. Play some music
-3. ...
-4. Check Discord
+1. `yarn build` / `yarn build`
+2. `npm start` / `yarn start`
+3. Play some music
+4. ...
+5. Check Discord
 
 ### Update
 

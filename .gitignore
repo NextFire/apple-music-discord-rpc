@@ -2,4 +2,6 @@
 node_modules/
 music-rpc.js
 music-rpc.log
-infos.json
+cache/info.json
+dist/
+.yarn/cache

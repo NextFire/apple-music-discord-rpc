@@ -9,7 +9,7 @@
   <key>ProgramArguments</key>
   <array>
     <string>/absolute/path/to/node</string>
-    <string>music-rpc.js</string>
+    <string>dist/index.js</string>
   </array>
   <key>KeepAlive</key>
   <true/>
