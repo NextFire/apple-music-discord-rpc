@@ -5,7 +5,7 @@ import * as fs from 'fs/promises';
 import ItunesSearch, {
   ItunesEntityMusic,
   ItunesMedia,
-  ItunesSearchOptions,
+  ItunesSearchOptions
 } from 'node-itunes-search';
 
 // Main part
@@ -91,7 +91,7 @@ async function searchAlbum(props: iTunesProps): Promise<iTunesInfos> {
     try {
       await fs.writeFile(
         'infos.json',
-        JSON.stringify(Array.from(infosCache.entries()), undefined, 2)
+        JSON.stringify(Array.from(infosCache.entries()))
       );
     } catch (err) {
       console.error(err);
@@ -118,9 +118,8 @@ async function setActivity() {
         const infos = await searchAlbum(props);
         console.log('infos:', infos);
 
-        const endTimestamp = Math.ceil(
-          Date.now() + (props.duration - props.playerPosition) * 1000
-        );
+        const delta = (props.duration - props.playerPosition) * 1000;
+        const endTimestamp = Math.ceil(Date.now() + delta);
         const year = props.year ? ` (${props.year})` : '';
 
         const activity: Presence = {
@@ -128,7 +127,7 @@ async function setActivity() {
           state: `${props.artist} — ${props.album}${year}`,
           endTimestamp,
           largeImageKey: infos.artwork,
-          largeImageText: `${props.album}${year}`,
+          largeImageText: props.album,
         };
         if (infos.url) {
           activity.buttons = [
