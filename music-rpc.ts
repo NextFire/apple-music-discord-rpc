@@ -1,50 +1,45 @@
-import '@jxa/global-type';
-import { run } from '@jxa/run';
-import { Client, Presence } from 'discord-rpc';
-import * as fs from 'fs/promises';
-import ItunesSearch, {
-  ItunesEntityMusic,
-  ItunesMedia,
-  ItunesSearchOptions
-} from 'node-itunes-search';
+#!/usr/bin/env deno run --unstable --allow-env --allow-run --allow-net --allow-read --allow-write
+
+import {
+  Client,
+  Activity,
+} from "https://raw.githubusercontent.com/NextFire/discord_rpc/main/mod.ts";
+import { run } from "https://deno.land/x/jxa_run@v0.0.3/mod.ts";
+import type {} from "https://deno.land/x/jxa_run@v0.0.3/global.d.ts";
 
 // Main part
 
-let rpc: Client;
-let timer: NodeJS.Timer;
 let infosCache: Map<number, iTunesInfos>;
 
-function main() {
-  rpc = new Client({ transport: 'ipc' });
-  rpc.on('connected', () => {
-    setActivity();
-    timer = setInterval(setActivity, 15e3);
-  });
-  // @ts-ignore: undocumented event?
-  rpc.on('disconnected', () => {
-    clearInterval(timer);
-    rpc.destroy().catch(console.error);
-    main();
-  });
-  rpc
-    .login({ clientId: '773825528921849856' })
-    .then(console.log)
-    .catch((e) => {
-      console.error(e);
-      setTimeout(main, 15e3);
-    });
+async function main() {
+  try {
+    const rpc = new Client({ id: "773825528921849856" });
+    await rpc.connect();
+    console.log(rpc);
+    const timer = setInterval(async () => {
+      try {
+        await setActivity(rpc);
+      } catch (err) {
+        console.error(err);
+        clearInterval(timer);
+        rpc.close();
+        main();
+      }
+    }, 15e3);
+  } catch (err) {
+    console.error(err);
+    setTimeout(main, 15e3);
+  }
 }
 
 async function start() {
-  await fs
-    .readFile('infos.json', 'utf8')
-    .then((data) => {
-      infosCache = new Map(JSON.parse(data));
-    })
-    .catch((err) => {
-      console.error(err);
-      infosCache = new Map();
-    });
+  try {
+    const text = await Deno.readTextFile("infos.json");
+    infosCache = new Map(JSON.parse(text));
+  } catch (err) {
+    console.log(err + "\n> No infos.json found, creating a new cache...");
+    infosCache = new Map();
+  }
   main();
 }
 
@@ -53,18 +48,16 @@ start();
 // Utils functions
 
 function isOpen(): Promise<boolean> {
-  return run(() => Application('System Events').processes['Music'].exists());
+  return run(() => Application("System Events").processes["Music"].exists());
 }
 
 function getState(): Promise<string> {
-  // @ts-ignore: 'Music' replaced 'iTunes' on Catalina and later
-  return run(() => (Application('Music') as Application._iTunes).playerState());
+  return run(() => Application("Music").playerState());
 }
 
 function getProps(): Promise<iTunesProps> {
   return run(() => {
-    // @ts-ignore: 'Music' replaced 'iTunes' on Catalina and later
-    const music = Application('Music') as Application._iTunes;
+    const music = Application("Music");
     return {
       ...music.currentTrack().properties(),
       playerPosition: music.playerPosition(),
@@ -76,21 +69,20 @@ async function searchAlbum(props: iTunesProps): Promise<iTunesInfos> {
   const { id, artist, album } = props;
   let infos = infosCache.get(id);
   if (!infos) {
-    const options = new ItunesSearchOptions({
-      term: encodeURI(decodeURI(`${artist} ${album}`)),
-      media: ItunesMedia.Music,
-      entity: ItunesEntityMusic.Album,
-      limit: 1,
-    });
-    const result = await ItunesSearch.search(options);
-    const artwork = result.results[0]?.artworkUrl100 ?? 'appicon';
+    const term = encodeURI(decodeURI(`${artist} ${album}`));
+    const resp = await fetch(
+      `https://itunes.apple.com/search?media=music&entity=album&limit=1&term=${term}`
+    );
+    const result = await resp.json();
+
+    const artwork = result.results[0]?.artworkUrl100 ?? "appicon";
     const url = result.results[0]?.collectionViewUrl ?? null;
     infos = { artwork, url };
     infosCache.set(id, infos);
 
     try {
-      await fs.writeFile(
-        'infos.json',
+      await Deno.writeTextFile(
+        "infos.json",
         JSON.stringify(Array.from(infosCache.entries()))
       );
     } catch (err) {
@@ -102,51 +94,56 @@ async function searchAlbum(props: iTunesProps): Promise<iTunesInfos> {
 
 // Activity setter
 
-async function setActivity() {
+async function setActivity(rpc: Client) {
   const open = await isOpen();
-  console.log('isOpen:', open);
+  console.log("isOpen:", open);
 
   if (open) {
     const state = await getState();
-    console.log('state:', state);
+    console.log("state:", state);
 
     switch (state) {
-      case 'playing':
+      case "playing": {
         const props = await getProps();
-        console.log('props:', props);
+        console.log("props:", props);
 
         const infos = await searchAlbum(props);
-        console.log('infos:', infos);
+        console.log("infos:", infos);
 
         const delta = (props.duration - props.playerPosition) * 1000;
-        const endTimestamp = Math.ceil(Date.now() + delta);
-        const year = props.year ? ` (${props.year})` : '';
+        const end = Math.ceil(Date.now() + delta);
+        const year = props.year ? ` (${props.year})` : "";
 
-        const activity: Presence = {
+        const activity: Activity = {
           details: props.name,
           state: `${props.artist} — ${props.album}${year}`,
-          endTimestamp,
-          largeImageKey: infos.artwork,
-          largeImageText: props.album,
+          timestamps: { start: 1, end },
+          assets: {
+            large_image: infos.artwork,
+            large_text: props.album,
+          },
         };
         if (infos.url) {
           activity.buttons = [
             {
-              label: 'Listen on Apple Music',
+              label: "Listen on Apple Music",
               url: infos.url,
             },
           ];
         }
 
-        rpc.setActivity(activity);
+        await rpc.setActivity(activity);
         break;
-      case 'paused':
-      case 'stopped':
-        rpc.clearActivity();
+      }
+
+      case "paused":
+      case "stopped": {
+        await rpc.setActivity({});
         break;
+      }
     }
   } else {
-    rpc.clearActivity();
+    await rpc.setActivity({});
   }
 }
 

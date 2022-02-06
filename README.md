@@ -1,8 +1,9 @@
 # apple-music-discord-rpc
 
-**Unmaintened Python/pypresence version available on the [python branch](https://github.com/NextFire/apple-music-discord-rpc/tree/python).**
+**Unmaintened Python/pypresence version available on the [python branch](https://github.com/NextFire/apple-music-discord-rpc/tree/python).**\
+**Unmaintened node.js version available on the [node branch](https://github.com/NextFire/apple-music-discord-rpc/tree/node).**
 
-> A node.js + JavaScript for Automation (JXA) based Discord Rich Presence client for Apple Music app on macOS.
+> A Deno + JavaScript for Automation (JXA) based Discord Rich Presence client for Apple Music app on macOS.
 
 ## Features
 
@@ -16,37 +17,38 @@
 ## Prerequisites
 
 - macOS Catalina or newer (with Apple Music app)
-- [`node`](https://nodejs.dev)
+- [`deno`](https://deno.land)
 - Discord, obviously
 
-## Usage
+## Quick start
 
-### Compilation
+1. Run the commands below to clone the repo and launch the script with Deno
 
-First, clone this repository and install node dependancies (`npm install`) then run `npm run build` to compile the TypeScript file to a node runnable JavaScript file.
+```bash
+git clone https://github.com/NextFire/apple-music-discord-rpc.git
+cd apple-music-discord-rpc/
+./music-rpc.ts
+```
 
-### Quick use
-
-1. `npm start`
 2. Play some music
 3. ...
 4. Check Discord
 
 ### Update
 
-Simply `git pull`, `npm install`, `npm run build` and relaunch the script to get the latest changes.
+Simply `git pull` and relaunch the script to get the latest changes.
 
 ### Daemon mode
 
 #### Install
 
-1. Edit provided `moe.yuru.music-rpc.plist` with your favorite editor:
+1. Copy the provided `moe.yuru.music-rpc.plist` to `~/Library/LaunchAgents/` folder (create it if it does not exist)
+2. Edit `moe.yuru.music-rpc.plist` with your favorite editor:
 
 a) replace `/absolute/path/to/cloned/repo` with the absolute cloned repo path
 
-b) replace `/absolute/path/to/node` with the absolute `node` binary path (given by `which node`)
+b) replace `/absolute/path/to/deno` with the absolute `deno` binary path (given by `which deno`)
 
-2. Move/Copy `moe.yuru.music-rpc.plist` to `~/Library/LaunchAgents/` folder (create it if it does not exist)
 3. Run `launchctl load ~/Library/LaunchAgents/moe.yuru.music-rpc.plist`
 4. Play some music
 5. ...
@@ -60,7 +62,8 @@ Run these commands:
 
 - `launchctl unload ~/Library/LaunchAgents/moe.yuru.music-rpc.plist`
 - `rm ~/Library/LaunchAgents/moe.yuru.music-rpc.plist`
-- `rm ~/Library/LaunchAgents/music-rpc-*.py`
+
+Then delete the cloned repository.
 
 ## Known issues
 
