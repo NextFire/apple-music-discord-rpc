@@ -1,7 +1,6 @@
 # apple-music-discord-rpc
 
-**Unmaintened Python/pypresence version available on the [python branch](https://github.com/NextFire/apple-music-discord-rpc/tree/python).**\
-**Unmaintened node.js version available on the [node branch](https://github.com/NextFire/apple-music-discord-rpc/tree/node).**
+**Unmaintened old node.js and Python/pypresence versions archived [here](https://github.com/NextFire/apple-music-discord-rpc/tree/node) and [here](https://github.com/NextFire/apple-music-discord-rpc/tree/python).**
 
 > A Deno + JavaScript for Automation (JXA) based Discord Rich Presence client for Apple Music app on macOS.
 
