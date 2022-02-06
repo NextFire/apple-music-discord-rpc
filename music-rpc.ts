@@ -1,9 +1,6 @@
 #!/usr/bin/env deno run --unstable --allow-env --allow-run --allow-net --allow-read --allow-write
 
-import {
-  Client,
-  Activity,
-} from "https://raw.githubusercontent.com/NextFire/discord_rpc/main/mod.ts";
+import { Activity, Client } from "https://deno.land/x/discord_rpc@0.2.1/mod.ts";
 import { run } from "https://deno.land/x/jxa_run@v0.0.3/mod.ts";
 import type {} from "https://deno.land/x/jxa_run@v0.0.3/global.d.ts";
 
