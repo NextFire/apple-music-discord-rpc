@@ -5,6 +5,7 @@ import {
   Client,
 } from "https://github.com/harmonyland/discord_rpc/raw/1d41f3c830a66d4f2699774bc3ec5b44cceb3a46/mod.ts";
 import { run } from "https://deno.land/x/jxa_run@v0.0.3/mod.ts";
+import { iTunes } from "https://deno.land/x/jxa_run@v0.0.3/types/core.d.ts";
 import type {} from "https://deno.land/x/jxa_run@v0.0.3/global.d.ts";
 
 // Main part
@@ -52,12 +53,12 @@ function isOpen(): Promise<boolean> {
 }
 
 function getState(): Promise<string> {
-  return run(() => Application("Music").playerState());
+  return run(() => (Application("Music") as unknown as iTunes).playerState());
 }
 
 function getProps(): Promise<iTunesProps> {
   return run(() => {
-    const music = Application("Music");
+    const music = Application("Music") as unknown as iTunes;
     return {
       ...music.currentTrack().properties(),
       playerPosition: music.playerPosition(),
