@@ -10,6 +10,8 @@ import type {} from "https://deno.land/x/jxa_run@v0.0.3/global.d.ts";
 
 // Main part
 
+const APP_NAME: "Music" | "iTunes" = "Music";
+
 let infosCache: Map<number, iTunesInfos>;
 
 async function main() {
@@ -53,17 +55,20 @@ function isOpen(): Promise<boolean> {
 }
 
 function getState(): Promise<string> {
-  return run(() => (Application("Music") as unknown as iTunes).playerState());
+  return run((appName: "Music" | "iTunes") => {
+    const music = Application(appName) as unknown as iTunes;
+    return music.playerState();
+  }, APP_NAME);
 }
 
 function getProps(): Promise<iTunesProps> {
-  return run(() => {
-    const music = Application("Music") as unknown as iTunes;
+  return run((appName: "Music" | "iTunes") => {
+    const music = Application(appName) as unknown as iTunes;
     return {
       ...music.currentTrack().properties(),
       playerPosition: music.playerPosition(),
     };
-  });
+  }, APP_NAME);
 }
 
 async function searchAlbum(props: iTunesProps): Promise<iTunesInfos> {
