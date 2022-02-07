@@ -21,7 +21,9 @@ Works with both local tracks and Apple Music streaming service!
 - [`deno`](https://deno.land)
 - Discord, obviously
 
-## Quick start
+## Usage
+
+### Quick start
 
 1. Run the commands below to clone the repo and launch the script with Deno
 
