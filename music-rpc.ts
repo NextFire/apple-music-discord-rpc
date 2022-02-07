@@ -5,8 +5,8 @@ import {
   Client,
 } from "https://github.com/harmonyland/discord_rpc/raw/1d41f3c830a66d4f2699774bc3ec5b44cceb3a46/mod.ts";
 import { run } from "https://deno.land/x/jxa_run@v0.0.3/mod.ts";
-import { iTunes } from "https://deno.land/x/jxa_run@v0.0.3/types/core.d.ts";
 import type {} from "https://deno.land/x/jxa_run@v0.0.3/global.d.ts";
+import type { iTunes } from "https://deno.land/x/jxa_run@v0.0.3/types/core.d.ts";
 
 // Main part
 
@@ -40,7 +40,7 @@ async function start() {
     const text = await Deno.readTextFile("infos.json");
     infosCache = new Map(JSON.parse(text));
   } catch (err) {
-    console.log(err + "\n> No infos.json found, creating a new cache...");
+    console.log(err + "\nNo `infos.json` found, generating a new cache");
     infosCache = new Map();
   }
   main();
