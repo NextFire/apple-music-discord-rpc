@@ -1,7 +1,7 @@
 #!/usr/bin/env deno run --unstable --allow-env --allow-run --allow-net --allow-read --allow-write
 
-import { Client } from "https://github.com/harmonyland/discord_rpc/raw/1d41f3c830a66d4f2699774bc3ec5b44cceb3a46/mod.ts";
-import type { Activity } from "https://github.com/harmonyland/discord_rpc/raw/1d41f3c830a66d4f2699774bc3ec5b44cceb3a46/mod.ts";
+import { Client } from "https://deno.land/x/discord_rpc@0.3.0/mod.ts";
+import type { Activity } from "https://deno.land/x/discord_rpc@0.3.0/mod.ts";
 import { run } from "https://deno.land/x/jxa_run@v0.0.3/mod.ts";
 import type {} from "https://deno.land/x/jxa_run@v0.0.3/global.d.ts";
 import type { iTunes } from "https://deno.land/x/jxa_run@v0.0.3/types/core.d.ts";
