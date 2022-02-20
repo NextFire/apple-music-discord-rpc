@@ -1,7 +1,7 @@
 #!/usr/bin/env deno run --unstable --allow-env --allow-run --allow-net --allow-read --allow-write
 
-import { Client } from "https://deno.land/x/discord_rpc@0.3.0/mod.ts";
-import type { Activity } from "https://deno.land/x/discord_rpc@0.3.0/mod.ts";
+import { Client } from "https://raw.githubusercontent.com/harmonyland/discord_rpc/ba127c20816af15e2c3cd2c17d81248b097e9bd2/mod.ts";
+import type { Activity } from "https://raw.githubusercontent.com/harmonyland/discord_rpc/ba127c20816af15e2c3cd2c17d81248b097e9bd2/mod.ts";
 import { run } from "https://deno.land/x/jxa_run@v0.0.3/mod.ts";
 import type {} from "https://deno.land/x/jxa_run@v0.0.3/global.d.ts";
 import type { iTunes } from "https://deno.land/x/jxa_run@v0.0.3/types/core.d.ts";
@@ -122,7 +122,7 @@ async function setActivity(rpc: Client) {
         const activity: Activity = {
           details: props.name,
           state: `${props.artist} — ${props.album}${year}`,
-          timestamps: { start: 1, end },
+          timestamps: { end },
           assets: {
             large_image: infos.artwork,
             large_text: props.album,
