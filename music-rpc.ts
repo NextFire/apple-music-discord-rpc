@@ -6,12 +6,55 @@ import { run } from "https://deno.land/x/jxa_run@v0.0.3/mod.ts";
 import type {} from "https://deno.land/x/jxa_run@v0.0.3/global.d.ts";
 import type { iTunes } from "https://deno.land/x/jxa_run@v0.0.3/types/core.d.ts";
 
+// Cache
+
+class Cache {
+  static VERSION = 1;
+  static #data: Map<string, iTunesInfos> = new Map();
+
+  static get(key: string) {
+    return this.#data.get(key);
+  }
+
+  static set(key: string, value: iTunesInfos) {
+    this.#data.set(key, value);
+    this.saveCache();
+  }
+
+  static async loadCache() {
+    try {
+      const text = await Deno.readTextFile("infos.json");
+      const data = JSON.parse(text);
+      if (data.version !== this.VERSION) throw new Error("Old cache");
+      this.#data = new Map(data.data);
+    } catch (err) {
+      console.error(err, "No valid infos.json found, generating a new cache");
+    }
+  }
+
+  static async saveCache() {
+    try {
+      await Deno.writeTextFile(
+        "infos.json",
+        JSON.stringify({
+          version: this.VERSION,
+          data: Array.from(this.#data.entries()),
+        })
+      );
+    } catch (err) {
+      console.error(err);
+    }
+  }
+}
+
 // Main part
 
-// "iTunes" before Catalina, "Music" after
-const APP_NAME: "Music" | "iTunes" = "Music";
+start();
 
-let infosCache: Map<number, iTunesInfos>;
+async function start() {
+  await Cache.loadCache();
+  main();
+}
 
 async function main() {
   try {
@@ -34,34 +77,25 @@ async function main() {
   }
 }
 
-async function start() {
-  try {
-    const text = await Deno.readTextFile("infos.json");
-    infosCache = new Map(JSON.parse(text));
-  } catch (err) {
-    console.log(err + "\nNo `infos.json` found, generating a new cache");
-    infosCache = new Map();
-  }
-  main();
-}
-
-start();
-
 // Utils functions
 
+const APP_NAME: iTunesAppName = "Music"; // macOS < Catalina ? "iTunes": "Music"
+
 function isOpen(): Promise<boolean> {
-  return run(() => Application("System Events").processes["Music"].exists());
+  return run((appName: iTunesAppName) => {
+    return Application("System Events").processes[appName].exists();
+  }, APP_NAME);
 }
 
 function getState(): Promise<string> {
-  return run((appName: "Music" | "iTunes") => {
+  return run((appName: iTunesAppName) => {
     const music = Application(appName) as unknown as iTunes;
     return music.playerState();
   }, APP_NAME);
 }
 
 function getProps(): Promise<iTunesProps> {
-  return run((appName: "Music" | "iTunes") => {
+  return run((appName: iTunesAppName) => {
     const music = Application(appName) as unknown as iTunes;
     return {
       ...music.currentTrack().properties(),
@@ -71,29 +105,23 @@ function getProps(): Promise<iTunesProps> {
 }
 
 async function searchAlbum(props: iTunesProps): Promise<iTunesInfos> {
-  const { id, artist, album } = props;
-  let infos = infosCache.get(id);
+  const { artist, album } = props;
+  const query = `${artist} ${album}`;
+  let infos = Cache.get(query);
+
   if (!infos) {
-    const term = encodeURI(decodeURI(`${artist} ${album}`));
+    const encodedQuery = encodeURI(decodeURI(query));
     const resp = await fetch(
-      `https://itunes.apple.com/search?media=music&entity=album&limit=1&term=${term}`
+      `https://itunes.apple.com/search?media=music&entity=album&limit=1&term=${encodedQuery}`
     );
     const result = await resp.json();
 
     const artwork = result.results[0]?.artworkUrl100 ?? "appicon";
     const url = result.results[0]?.collectionViewUrl ?? null;
     infos = { artwork, url };
-    infosCache.set(id, infos);
-
-    try {
-      await Deno.writeTextFile(
-        "infos.json",
-        JSON.stringify(Array.from(infosCache.entries()))
-      );
-    } catch (err) {
-      console.error(err);
-    }
+    Cache.set(query, infos);
   }
+
   return infos;
 }
 
@@ -152,7 +180,9 @@ async function setActivity(rpc: Client) {
   }
 }
 
-// TypeScript interfaces
+// TypeScript
+
+type iTunesAppName = "iTunes" | "Music";
 
 interface iTunesProps {
   id: number;
