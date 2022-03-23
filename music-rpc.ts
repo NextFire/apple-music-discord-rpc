@@ -23,19 +23,19 @@ class Cache {
 
   static async loadCache() {
     try {
-      const text = await Deno.readTextFile("infos.json");
+      const text = await Deno.readTextFile("cache.json");
       const data = JSON.parse(text);
       if (data.version !== this.VERSION) throw new Error("Old cache");
       this.#data = new Map(data.data);
     } catch (err) {
-      console.error(err, "No valid infos.json found, generating a new cache");
+      console.error(err, "No valid cache.json found, generating a new cache");
     }
   }
 
   static async saveCache() {
     try {
       await Deno.writeTextFile(
-        "infos.json",
+        "cache.json",
         JSON.stringify({
           version: this.VERSION,
           data: Array.from(this.#data.entries()),
