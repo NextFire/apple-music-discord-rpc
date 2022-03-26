@@ -2,9 +2,9 @@
 
 import { Client } from "https://raw.githubusercontent.com/harmonyland/discord_rpc/ba127c20816af15e2c3cd2c17d81248b097e9bd2/mod.ts";
 import type { Activity } from "https://raw.githubusercontent.com/harmonyland/discord_rpc/ba127c20816af15e2c3cd2c17d81248b097e9bd2/mod.ts";
-import { run } from "https://deno.land/x/jxa_run@v0.0.3/mod.ts";
-import type {} from "https://deno.land/x/jxa_run@v0.0.3/global.d.ts";
-import type { iTunes } from "https://deno.land/x/jxa_run@v0.0.3/types/core.d.ts";
+import { run } from "https://raw.githubusercontent.com/NextFire/jxa/64b6de1748ea063c01271edbe9846e37a584e1ab/run/mod.ts";
+import type {} from "https://raw.githubusercontent.com/NextFire/jxa/64b6de1748ea063c01271edbe9846e37a584e1ab/run/global.d.ts";
+import type { iTunes } from "https://raw.githubusercontent.com/NextFire/jxa/64b6de1748ea063c01271edbe9846e37a584e1ab/run/types/core.d.ts";
 
 // Cache
 
