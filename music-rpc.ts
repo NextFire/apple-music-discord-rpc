@@ -1,10 +1,10 @@
 #!/usr/bin/env deno run --unstable --allow-env --allow-run --allow-net --allow-read --allow-write
 
-import { Client } from "https://raw.githubusercontent.com/harmonyland/discord_rpc/ba127c20816af15e2c3cd2c17d81248b097e9bd2/mod.ts";
-import type { Activity } from "https://raw.githubusercontent.com/harmonyland/discord_rpc/ba127c20816af15e2c3cd2c17d81248b097e9bd2/mod.ts";
-import { run } from "https://raw.githubusercontent.com/NextFire/jxa/64b6de1748ea063c01271edbe9846e37a584e1ab/run/mod.ts";
-import type {} from "https://raw.githubusercontent.com/NextFire/jxa/64b6de1748ea063c01271edbe9846e37a584e1ab/run/global.d.ts";
-import type { iTunes } from "https://raw.githubusercontent.com/NextFire/jxa/64b6de1748ea063c01271edbe9846e37a584e1ab/run/types/core.d.ts";
+import { Client } from "https://deno.land/x/discord_rpc@0.3.0/mod.ts";
+import type { Activity } from "https://deno.land/x/discord_rpc@0.3.0/mod.ts";
+import { run } from "https://deno.land/x/jxa_run@v0.0.3/mod.ts";
+import type {} from "https://deno.land/x/jxa_run@v0.0.3/global.d.ts";
+import type { iTunes } from "https://deno.land/x/jxa_run@v0.0.3/types/core.d.ts";
 
 // Cache
 
@@ -144,13 +144,14 @@ async function setActivity(rpc: Client) {
         console.log("infos:", infos);
 
         const delta = (props.duration - props.playerPosition) * 1000;
+        const start = Date.now();
         const end = Math.ceil(Date.now() + delta);
         const year = props.year ? ` (${props.year})` : "";
 
         const activity: Activity = {
           details: props.name,
           state: `${props.artist} — ${props.album}${year}`,
-          timestamps: { end },
+          timestamps: { start, end },
           assets: {
             large_image: infos.artwork,
             large_text: props.album,
