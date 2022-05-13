@@ -169,7 +169,7 @@ async function setActivity(rpc: Client) {
           timestamps: { end },
           assets: {
             large_image: infos.artwork,
-            large_text: limitStr(`${props.album} (${props.year})`, 128),
+            large_text: `${limitStr(`${props.album}`, 120)} (${props.year})`,
           },
         };
         if (infos.url) {
