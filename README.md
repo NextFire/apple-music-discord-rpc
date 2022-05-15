@@ -13,7 +13,7 @@ Works with local tracks and Apple Music streaming service.
 
 <img width="371" alt="image" src="https://user-images.githubusercontent.com/20094890/168470874-5b66dbe5-324c-47e4-a341-3891a24eaed0.png">
 
-## Installation
+## Install
 
 ### Homebrew (recommended)
 
@@ -29,10 +29,18 @@ These commands
 
 - adds [my tap](https://github.com/NextFire/homebrew-tap) to Homebrew,
 - installs the `apple-music-discord-rpc` formula (and Deno),
-- enables the daemon on login and starts it.
+- enables the launch agent on login and starts it.
 
 The `music-rpc.ts` executable is also added to `PATH`.
 
-### Manually
+### Script
 
-Instructions archived [here](https://github.com/NextFire/apple-music-discord-rpc/blob/c49e3363c44841f7dfefb41ecdcf42c81fea2ddb/README.md#prerequisites).
+Install [Deno](https://deno.land), clone the repository and execute [`install.sh`](/scripts/install.sh):
+
+```
+git clone https://github.com/NextFire/apple-music-discord-rpc.git
+cd apple-music-discord-rpc/
+./scripts/install.sh
+```
+
+It will copy the [launch agent](/scripts/moe.yuru.music-rpc.plist) into `~/Library/LaunchAgents/` and correctly edit it.
