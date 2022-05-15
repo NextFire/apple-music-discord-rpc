@@ -129,16 +129,11 @@ async function searchAlbum(props: iTunesProps): Promise<iTunesInfos> {
  * limits string to specified number limit
  * will output the string with 3 chars at the end replaced by '...'
  * @param s string
- * @param n char number limit
+ * @param maxLength char number limit
  * @returns {string}
  */
-function limitStr(s: string, n: number): string {
-  let l = s;
-  if (l.length > n) {
-    l = l.substring(0, n - 3) + "...";
-  }
-
-  return l;
+function limitStr(s: string, maxLength: number): string {
+  return s.length <= maxLength ? s : `${s.slice(0, maxLength - 3)}...`;
 }
 
 // Activity setter
@@ -153,7 +148,6 @@ async function setActivity(rpc: Client) {
 
     switch (state) {
       case "playing": {
-        // EVERYTHING must be less than or equal to 128 chars long
         const props = await getProps();
         console.log("props:", props);
 
@@ -163,13 +157,14 @@ async function setActivity(rpc: Client) {
         const delta = (props.duration - props.playerPosition) * 1000;
         const end = Math.ceil(Date.now() + delta);
 
+        // EVERYTHING must be less than or equal to 128 chars long
         const activity: Activity = {
           details: limitStr(props.name, 128),
           state: limitStr(props.artist, 128),
           timestamps: { end },
           assets: {
             large_image: infos.artwork,
-            large_text: `${limitStr(`${props.album}`, 120)} (${props.year})`,
+            large_text: limitStr(props.album, 128),
           },
         };
         if (infos.url) {
