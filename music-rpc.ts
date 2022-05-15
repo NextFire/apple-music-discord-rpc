@@ -10,6 +10,7 @@ import type { iTunes } from "https://raw.githubusercontent.com/NextFire/jxa/64b6
 
 class Cache {
   static VERSION = 1;
+  static CACHE_FILE = "cache.json";
   static #data: Map<string, iTunesInfos> = new Map();
 
   static get(key: string) {
@@ -23,19 +24,22 @@ class Cache {
 
   static async loadCache() {
     try {
-      const text = await Deno.readTextFile("cache.json");
+      const text = await Deno.readTextFile(this.CACHE_FILE);
       const data = JSON.parse(text);
       if (data.version !== this.VERSION) throw new Error("Old cache");
       this.#data = new Map(data.data);
     } catch (err) {
-      console.error(err, "No valid cache.json found, generating a new cache");
+      console.error(
+        err,
+        `No valid ${this.CACHE_FILE} found, generating a new cache...`
+      );
     }
   }
 
   static async saveCache() {
     try {
       await Deno.writeTextFile(
-        "cache.json",
+        this.CACHE_FILE,
         JSON.stringify({
           version: this.VERSION,
           data: Array.from(this.#data.entries()),
@@ -49,6 +53,7 @@ class Cache {
 
 // Main part
 
+const CLIENT_ID = "773825528921849856";
 start();
 
 async function start() {
@@ -58,7 +63,7 @@ async function start() {
 
 async function main() {
   try {
-    const rpc = new Client({ id: "773825528921849856" });
+    const rpc = new Client({ id: CLIENT_ID });
     await rpc.connect();
     console.log(rpc);
     const timer = setInterval(async () => {
