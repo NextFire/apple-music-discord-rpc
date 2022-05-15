@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Get commit SHA
+        id: version
+        run: echo "::set-output name=commit_sha::$(git log -n1 --format='%h')"
+      - uses: denoland/setup-deno@v1
+      - name: Compile x86_64
+        run: |
+          deno compile --unstable --allow-env --allow-run --allow-net --allow-read --allow-write --target x86_64-apple-darwin music-rpc.ts
+          mv music-rpc music-rpc-${{ steps.version.outputs.commit_sha }}-x86_64-apple-darwin
+      - name: Upload x86_64
+        uses: actions/upload-artifact@v3
+        with:
+          name: music-rpc-${{ steps.version.outputs.commit_sha }}-x86_64-apple-darwin
+          path: music-rpc-${{ steps.version.outputs.commit_sha }}-x86_64-apple-darwin
+      - name: Compile aarch64
+        run: |
+          deno compile --unstable --allow-env --allow-run --allow-net --allow-read --allow-write --target aarch64-apple-darwin music-rpc.ts
+          mv music-rpc music-rpc-${{ steps.version.outputs.commit_sha }}-aarch64-apple-darwin
+      - name: Upload aarch64
+        uses: actions/upload-artifact@v3
+        with:
+          name: music-rpc-${{ steps.version.outputs.commit_sha }}-aarch64-apple-darwin
+          path: music-rpc-${{ steps.version.outputs.commit_sha }}-aarch64-apple-darwin
