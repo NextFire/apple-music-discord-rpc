@@ -1,12 +1,11 @@
 # apple-music-discord-rpc
 
-**[Deno](https://deno.land) + JavaScript for Automation (JXA) Discord Rich Presence Client for Apple Music on macOS (Catalina and later).**
+**[Deno](https://deno.land) + JavaScript for Automation (JXA) Discord Rich Presence Client for the macOS Apple Music app (Catalina and later).**
 
 Works with local tracks and Apple Music streaming service.
 
 ## Features
 
-- Flex your music tastes to your online buddies.
 - Can be started in background at login.
 - Minimalist: No status bar icon clutter and presence only shown when actually playing something.
 - Shows album artworks and links to Apple Music (when found) ([#5](https://github.com/NextFire/apple-music-discord-rpc/pull/5)).
@@ -15,7 +14,7 @@ Works with local tracks and Apple Music streaming service.
 
 ## Install
 
-### Homebrew (recommended)
+### Homebrew
 
 With [Homebrew](https://brew.sh) installed, simply execute the following commands:
 
@@ -33,9 +32,9 @@ These commands
 
 The `music-rpc.ts` executable is also added to `PATH`.
 
-### Script
+### Scripts
 
-Install [Deno](https://deno.land), clone the repository and execute [`install.sh`](/scripts/install.sh):
+Install [Deno](https://deno.land) then clone the repository and execute [`install.sh`](/scripts/install.sh):
 
 ```
 git clone https://github.com/NextFire/apple-music-discord-rpc.git
