@@ -12,9 +12,13 @@ Works with local tracks and Apple Music streaming service.
 
 <img width="371" alt="image" src="https://user-images.githubusercontent.com/20094890/168470874-5b66dbe5-324c-47e4-a341-3891a24eaed0.png">
 
-## Install
+## Usage
+
+Choose one of the two methods below to download the script and enable the launch agent that starts the script on login.
 
 ### Homebrew
+
+#### Install
 
 With [Homebrew](https://brew.sh) installed, simply execute the following commands:
 
@@ -32,7 +36,17 @@ These commands
 
 The `music-rpc.ts` executable is also added to `PATH`.
 
+#### Uninstall
+
+```
+brew services stop apple-music-discord-rpc
+brew remove apple-music-discord-rpc
+brew untap nextfire/tap
+```
+
 ### Scripts
+
+#### Install
 
 Install [Deno](https://deno.land) then clone the repository and execute [`install.sh`](/scripts/install.sh):
 
@@ -43,3 +57,12 @@ cd apple-music-discord-rpc/
 ```
 
 It will copy the [launch agent](/scripts/moe.yuru.music-rpc.plist) into `~/Library/LaunchAgents/` and correctly edit it.
+
+#### Uninstall
+
+```
+cd apple-music-discord-rpc/
+./scripts/uninstall.sh
+cd ../
+rm -rf apple-music-discord-rpc/
+```
