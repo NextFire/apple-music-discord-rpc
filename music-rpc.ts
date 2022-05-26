@@ -9,7 +9,7 @@ import type { iTunes } from "https://raw.githubusercontent.com/NextFire/jxa/64b6
 // Cache
 
 class Cache {
-  static VERSION = 1;
+  static VERSION = 2;
   static CACHE_FILE = "cache.json";
   static #data: Map<string, iTunesInfos> = new Map();
 
@@ -53,7 +53,10 @@ class Cache {
 
 // Main part
 
-const CLIENT_ID = "773825528921849856";
+const MACOS_VER = await getMacOSVersion();
+const IS_APPLE_MUSIC = MACOS_VER >= 10.15;
+const APP_NAME: iTunesAppName = IS_APPLE_MUSIC ? "Music" : "iTunes";
+const CLIENT_ID = IS_APPLE_MUSIC ? "773825528921849856" : "979297966739300416";
 start();
 
 async function start() {
@@ -84,7 +87,16 @@ async function main() {
 
 // Utils functions
 
-const APP_NAME: iTunesAppName = "Music"; // macOS < Catalina ? "iTunes": "Music"
+async function getMacOSVersion(): Promise<number> {
+  const proc = Deno.run({
+    cmd: ["sw_vers", "-productVersion"],
+    stdout: "piped",
+  });
+  const rawOutput = await proc.output();
+  const output = new TextDecoder().decode(rawOutput);
+  const version = parseFloat(output.match(/\d+\.\d+/)![0]);
+  return version;
+}
 
 function isOpen(): Promise<boolean> {
   return run((appName: iTunesAppName) => {
@@ -121,7 +133,7 @@ async function searchAlbum(props: iTunesProps): Promise<iTunesInfos> {
     );
     const result = await resp.json();
 
-    const artwork = result.results[0]?.artworkUrl100 ?? "appicon";
+    const artwork = result.results[0]?.artworkUrl100 ?? null;
     const url = result.results[0]?.collectionViewUrl ?? null;
     infos = { artwork, url };
     Cache.set(query, infos);
@@ -168,7 +180,7 @@ async function setActivity(rpc: Client) {
           state: limitStr(props.artist, 128),
           timestamps: { end },
           assets: {
-            large_image: infos.artwork,
+            large_image: infos.artwork ?? "appicon",
             large_text: limitStr(props.album, 128),
           },
         };
@@ -211,6 +223,6 @@ interface iTunesProps {
 }
 
 interface iTunesInfos {
-  artwork: string;
+  artwork: string | null;
   url: string | null;
 }

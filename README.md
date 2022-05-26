@@ -1,6 +1,6 @@
 # apple-music-discord-rpc
 
-**[Deno](https://deno.land) + JavaScript for Automation (JXA) Discord Rich Presence Client for the macOS Apple Music app (Catalina and later).**
+**[Deno](https://deno.land) + JavaScript for Automation (JXA) Discord Rich Presence Client for the macOS Apple Music app (Catalina and later) and legacy iTunes.**
 
 Works with local tracks and Apple Music streaming service.
 
