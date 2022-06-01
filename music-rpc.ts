@@ -93,6 +93,7 @@ async function getMacOSVersion(): Promise<number> {
     stdout: "piped",
   });
   const rawOutput = await proc.output();
+  proc.close();
   const output = new TextDecoder().decode(rawOutput);
   const version = parseFloat(output.match(/\d+\.\d+/)![0]);
   return version;
