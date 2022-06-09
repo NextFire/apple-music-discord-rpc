@@ -169,29 +169,38 @@ async function setActivity(rpc: Client) {
         const props = await getProps();
         console.log("props:", props);
 
-        const infos = await searchAlbum(props);
-        console.log("infos:", infos);
-
-        const delta = (props.duration - props.playerPosition) * 1000;
-        const end = Math.ceil(Date.now() + delta);
+        let end;
+        if (props.duration) {
+          const delta = (props.duration - props.playerPosition) * 1000;
+          end = Math.ceil(Date.now() + delta);
+        }
 
         // EVERYTHING must be less than or equal to 128 chars long
         const activity: Activity = {
           details: limitStr(props.name, 128),
           state: limitStr(props.artist, 128),
           timestamps: { end },
-          assets: {
+          assets: { large_image: "appicon" },
+        };
+
+        // album.length == 0 for radios
+        if (props.album.length > 0) {
+          const infos = await searchAlbum(props);
+          console.log("infos:", infos);
+
+          activity.assets = {
             large_image: infos.artwork ?? "appicon",
             large_text: limitStr(props.album, 128),
-          },
-        };
-        if (infos.url) {
-          activity.buttons = [
-            {
-              label: "Listen on Apple Music",
-              url: infos.url,
-            },
-          ];
+          };
+
+          if (infos.url) {
+            activity.buttons = [
+              {
+                label: "Listen on Apple Music",
+                url: infos.url,
+              },
+            ];
+          }
         }
 
         await rpc.setActivity(activity);
@@ -219,7 +228,7 @@ interface iTunesProps {
   artist: string;
   album: string;
   year: number;
-  duration: number;
+  duration?: number;
   playerPosition: number;
 }
 
