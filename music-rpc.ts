@@ -129,18 +129,11 @@ async function searchAlbum(props: iTunesProps): Promise<iTunesInfos> {
 
   if (!infos) {
     const encodedQuery = encodeURIComponent(decodeURIComponent(query));
-    const albumResp = await fetch(
-      `https://itunes.apple.com/search?media=music&entity=album&limit=1&term=${encodedQuery}`
+    const entity = encodedQuery.indexOf("%26") > -1 ? "song" : "album";
+    const resp = await fetch(
+      `https://itunes.apple.com/search?media=music&entity=${entity}&limit=1&term=${encodedQuery}`
     );
-    const songResp = await fetch(
-      `https://itunes.apple.com/search?media=music&entity=song&limit=1&term=${encodedQuery}`
-    );
-    let result;
-    if (encodedQuery.indexOf("%26") > -1) {
-      result = await songResp.json();
-    } else {
-      result = await albumResp.json();
-    }
+    const result = await resp.json();
 
     const artwork = result.results[0]?.artworkUrl100 ?? null;
     const url = result.results[0]?.collectionViewUrl ?? null;
