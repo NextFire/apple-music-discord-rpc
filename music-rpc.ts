@@ -135,11 +135,10 @@ async function searchAlbum(props: iTunesProps): Promise<iTunesInfos> {
     const songResp = await fetch(
       `https://itunes.apple.com/search?media=music&entity=song&limit=1&term=${encodedQuery}`
     );
-    var result;
-    if (encodedQuery.indexOf('%26') > -1) {
+    let result;
+    if (encodedQuery.indexOf("%26") > -1) {
       result = await songResp.json();
-    }
-    else {
+    } else {
       result = await albumResp.json();
     }
 
