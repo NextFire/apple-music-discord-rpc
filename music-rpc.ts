@@ -9,7 +9,7 @@ import type { iTunes } from "https://raw.githubusercontent.com/NextFire/jxa/64b6
 // Cache
 
 class Cache {
-  static VERSION = 2;
+  static VERSION = 3;
   static CACHE_FILE = "cache.json";
   static #data: Map<string, iTunesInfos> = new Map();
 
