@@ -9,7 +9,7 @@ import type { iTunes } from "https://raw.githubusercontent.com/NextFire/jxa/64b6
 // Cache
 
 class Cache {
-  static VERSION = 2;
+  static VERSION = 3;
   static CACHE_FILE = "cache.json";
   static #data: Map<string, iTunesInfos> = new Map();
 
@@ -128,9 +128,10 @@ async function searchAlbum(props: iTunesProps): Promise<iTunesInfos> {
   let infos = Cache.get(query);
 
   if (!infos) {
-    const encodedQuery = encodeURI(decodeURI(query));
+    const encodedQuery = encodeURIComponent(decodeURIComponent(query));
+    const entity = encodedQuery.indexOf("%26") > -1 ? "song" : "album";
     const resp = await fetch(
-      `https://itunes.apple.com/search?media=music&entity=album&limit=1&term=${encodedQuery}`
+      `https://itunes.apple.com/search?media=music&entity=${entity}&limit=1&term=${encodedQuery}`
     );
     const result = await resp.json();
 
