@@ -10,7 +10,7 @@ Works with local tracks and Apple Music streaming service.
 - Minimalist: No status bar icon clutter and presence only shown when actually playing something.
 - Shows album artworks and links to Apple Music (when found) ([#5](https://github.com/NextFire/apple-music-discord-rpc/pull/5)).
 
-<img width="371" alt="image" src="https://user-images.githubusercontent.com/20094890/168470874-5b66dbe5-324c-47e4-a341-3891a24eaed0.png">
+<img width="370" alt="Capture d’écran 2022-07-11 à 09 00 50" src="https://user-images.githubusercontent.com/20094890/178206934-22134782-c58f-40c0-a6c8-6e27369d9a48.png">
 
 ## Usage
 
