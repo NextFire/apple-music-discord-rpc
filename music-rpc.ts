@@ -145,14 +145,17 @@ async function searchAlbum(props: iTunesProps): Promise<iTunesInfos> {
 }
 
 /**
- * limits string to specified number limit
- * will output the string with 3 chars at the end replaced by '...'
+ * Format string to specified char limits.
+ * Will output the string with 3 chars at the end replaced by '...'.
  * @param s string
- * @param maxLength char number limit
- * @returns {string}
+ * @param minLength
+ * @param maxLength
+ * @returns Formatted string
  */
-function limitStr(s: string, maxLength: number): string {
-  return s.length <= maxLength ? s : `${s.slice(0, maxLength - 3)}...`;
+function formatStr(s: string, minLength = 2, maxLength = 128) {
+  return s.length <= maxLength
+    ? s.padEnd(minLength)
+    : `${s.slice(0, maxLength - 3)}...`;
 }
 
 // Activity setter
@@ -178,13 +181,13 @@ async function setActivity(rpc: Client) {
 
         // EVERYTHING must be less than or equal to 128 chars long
         const activity: Activity = {
-          details: limitStr(props.name, 128),
+          details: formatStr(props.name),
           timestamps: { end },
           assets: { large_image: "appicon" },
         };
 
         if (props.artist.length > 0) {
-          activity.state = limitStr(props.artist, 128);
+          activity.state = formatStr(props.artist);
         }
 
         // album.length == 0 for radios
@@ -194,7 +197,7 @@ async function setActivity(rpc: Client) {
 
           activity.assets = {
             large_image: infos.artwork ?? "appicon",
-            large_text: limitStr(props.album, 128),
+            large_text: formatStr(props.album),
           };
 
           if (infos.url) {
