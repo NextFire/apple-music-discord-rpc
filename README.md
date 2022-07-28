@@ -14,13 +14,13 @@ Works with local tracks and Apple Music streaming service.
 
 ## Usage
 
-Choose one of the two methods below to download the script and enable the launch agent that starts the script on login.
+Choose one of the two methods below to install the script and enable the launch agent that starts it on login.
 
 ### Homebrew
 
 #### Install
 
-With [Homebrew](https://brew.sh) installed, simply execute the following commands:
+After installing [Homebrew](https://brew.sh), execute the following commands:
 
 ```
 brew tap nextfire/tap
@@ -30,9 +30,9 @@ brew services restart apple-music-discord-rpc
 
 These commands
 
-- adds [my tap](https://github.com/NextFire/homebrew-tap) to Homebrew,
-- installs the `apple-music-discord-rpc` formula (and Deno),
-- enables the launch agent on login and starts it.
+- add [this tap](https://github.com/NextFire/homebrew-tap) to Homebrew,
+- install its `apple-music-discord-rpc` formula (and Deno),
+- enable the launch agent on login and start it.
 
 The `music-rpc.ts` executable is also added to `PATH`.
 
