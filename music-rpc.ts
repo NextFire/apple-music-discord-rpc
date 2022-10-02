@@ -128,11 +128,13 @@ async function searchAlbum(props: iTunesProps): Promise<iTunesInfos> {
   let infos = Cache.get(query);
 
   if (!infos) {
-    const encodedQuery = encodeURIComponent(decodeURIComponent(query));
-    const entity = encodedQuery.indexOf("%26") > -1 ? "song" : "album";
-    const resp = await fetch(
-      `https://itunes.apple.com/search?media=music&entity=${entity}&limit=1&term=${encodedQuery}`
-    );
+    const params = new URLSearchParams({
+      media: "music",
+      entity: "album",
+      limit: "1",
+      term: query,
+    });
+    const resp = await fetch(`https://itunes.apple.com/search?${params}`);
     const result = await resp.json();
 
     const artwork = result.results[0]?.artworkUrl100 ?? null;
