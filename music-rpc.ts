@@ -2,7 +2,7 @@
 
 import type { Activity } from "https://raw.githubusercontent.com/harmonyland/discord_rpc/ba127c20816af15e2c3cd2c17d81248b097e9bd2/mod.ts";
 import { Client } from "https://raw.githubusercontent.com/harmonyland/discord_rpc/ba127c20816af15e2c3cd2c17d81248b097e9bd2/mod.ts";
-import type {} from "https://raw.githubusercontent.com/NextFire/jxa/64b6de1748ea063c01271edbe9846e37a584e1ab/run/global.d.ts";
+import type { } from "https://raw.githubusercontent.com/NextFire/jxa/64b6de1748ea063c01271edbe9846e37a584e1ab/run/global.d.ts";
 import { run } from "https://raw.githubusercontent.com/NextFire/jxa/64b6de1748ea063c01271edbe9846e37a584e1ab/run/mod.ts";
 import type { iTunes } from "https://raw.githubusercontent.com/NextFire/jxa/64b6de1748ea063c01271edbe9846e37a584e1ab/run/types/core.d.ts";
 
@@ -129,16 +129,24 @@ async function searchAlbum(props: iTunesProps): Promise<iTunesInfos> {
 
   if (!infos) {
     const params = new URLSearchParams({
-      media: "music",
-      entity: "album",
-      limit: "1",
-      term: query,
+      ...{
+        media: "music",
+        entity: "album",
+        attribute: "albumTerm",
+        term: artist === album ? artist : query,
+      }, ...(artist === album ? {} : { limit: "1" })
     });
     const resp = await fetch(`https://itunes.apple.com/search?${params}`);
-    const result = await resp.json();
+    let result = await resp.json();
 
-    const artwork = result.results[0]?.artworkUrl100 ?? null;
-    const url = result.results[0]?.collectionViewUrl ?? null;
+    if (result.resultCount > 1) {
+      result = result.results.find((r) => r.collectionName === album);
+    } else {
+      result = result.results[0];
+    }
+
+    const artwork = result?.artworkUrl100 ?? null;
+    const url = result?.collectionViewUrl ?? null;
     infos = { artwork, url };
     Cache.set(query, infos);
   }
