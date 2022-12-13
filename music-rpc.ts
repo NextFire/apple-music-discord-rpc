@@ -124,31 +124,37 @@ function getProps(): Promise<iTunesProps> {
 
 async function searchAlbum(props: iTunesProps): Promise<iTunesInfos> {
   const { artist, album } = props;
-  const query = `${artist} ${album}`;
-  let infos = Cache.get(query);
+  const cacheIndex = `${artist} ${album}`;
+  let infos = Cache.get(cacheIndex);
 
-  if (!infos) {
+  async function getInfos(album_: string): Promise<iTunesInfos> {
+    const query = `${artist} ${album_}`;
     const params = new URLSearchParams({
       ...{
         media: "music",
         entity: "album",
-        attribute: "albumTerm",
-        term: artist === album ? artist : query,
-      }, ...(artist === album ? {} : { limit: "1" })
+        term: album_.includes(artist) ? artist : query,
+      }, ...(album_.includes(artist) ? {} : { limit: "1" }) // If the album name contains the artist name, don't limit the results as the first result might not be the right album
     });
     const resp = await fetch(`https://itunes.apple.com/search?${params}`);
     let result = await resp.json();
 
-    if (result.resultCount > 1) {
-      result = result.results.find((r) => r.collectionName === album);
-    } else {
+    if (result.resultCount === 1) {
       result = result.results[0];
+    } else if (result.resultCount > 1) { // If there are multiple results, find the right album
+      result = result.results.find((r) => r.collectionName === album_);
+    } else if (album_.match(/\(.*\)$/)) { // If there are no results, try to remove the part of the album name in parentheses (e.g. "Album (Deluxe Edition)")
+      return getInfos(album_.replace(/\(.*\)$/, "").trim());
     }
 
     const artwork = result?.artworkUrl100 ?? null;
     const url = result?.collectionViewUrl ?? null;
-    infos = { artwork, url };
-    Cache.set(query, infos);
+    return { artwork, url };
+  }
+
+  if (!infos) {
+    infos = await getInfos(album);
+    Cache.set(cacheIndex, infos);
   }
 
   return infos;
