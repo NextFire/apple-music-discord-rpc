@@ -127,37 +127,45 @@ async function searchAlbum(props: iTunesProps): Promise<iTunesInfos> {
   const cacheIndex = `${artist} ${album}`;
   let infos = Cache.get(cacheIndex);
 
-  async function getInfos(album_: string): Promise<iTunesInfos> {
-    const query = `${artist} ${album_}`;
-    const params = new URLSearchParams({
-      ...{
-        media: "music",
-        entity: "album",
-        term: album_.includes(artist) ? artist : query,
-      }, ...(album_.includes(artist) ? {} : { limit: "1" }) // If the album name contains the artist name, don't limit the results as the first result might not be the right album
-    });
-    const resp = await fetch(`https://itunes.apple.com/search?${params}`);
-    let result = await resp.json();
-
-    if (result.resultCount === 1) {
-      result = result.results[0];
-    } else if (result.resultCount > 1) { // If there are multiple results, find the right album
-      result = result.results.find((r: iTunesResult) => r.collectionName === album_);
-    } else if (album_.match(/\(.*\)$/)) { // If there are no results, try to remove the part of the album name in parentheses (e.g. "Album (Deluxe Edition)")
-      return getInfos(album_.replace(/\(.*\)$/, "").trim());
-    }
-
-    const artwork = result?.artworkUrl100 ?? null;
-    const url = result?.collectionViewUrl ?? null;
-    return { artwork, url };
-  }
-
   if (!infos) {
-    infos = await getInfos(album);
+    infos = await _searchAlbum(artist, album);
     Cache.set(cacheIndex, infos);
   }
 
   return infos;
+}
+
+async function _searchAlbum(
+  artist: string,
+  album: string
+): Promise<iTunesInfos> {
+  const query = `${artist} ${album}`;
+  const params = new URLSearchParams({
+    media: "music",
+    entity: "album",
+    term: album.includes(artist) ? artist : query,
+    // If the album name contains the artist name,
+    // don't limit the results as the first result might not be the right album
+    limit: album.includes(artist) ? "" : "1",
+  });
+  const resp = await fetch(`https://itunes.apple.com/search?${params}`);
+  const json: iTunesSearchResponse = await resp.json();
+
+  let result: iTunesSearchResult | undefined;
+  if (json.resultCount === 1) {
+    result = json.results[0];
+  } else if (json.resultCount > 1) {
+    // If there are multiple results, find the right album
+    result = json.results.find((r) => r.collectionName === album);
+  } else if (album.match(/\(.*\)$/)) {
+    // If there are no results, try to remove the part
+    // of the album name in parentheses (e.g. "Album (Deluxe Edition)")
+    return await _searchAlbum(artist, album.replace(/\(.*\)$/, "").trim());
+  }
+
+  const artwork = result?.artworkUrl100 ?? null;
+  const url = result?.collectionViewUrl ?? null;
+  return { artwork, url };
 }
 
 /**
@@ -245,12 +253,6 @@ async function setActivity(rpc: Client) {
 
 type iTunesAppName = "iTunes" | "Music";
 
-interface iTunesResult {
-  artworkUrl100: string;
-  collectionViewUrl: string;
-  collectionName: string;
-}
-
 interface iTunesProps {
   id: number;
   name: string;
@@ -264,4 +266,15 @@ interface iTunesProps {
 interface iTunesInfos {
   artwork: string | null;
   url: string | null;
+}
+
+interface iTunesSearchResponse {
+  resultCount: number;
+  results: iTunesSearchResult[];
+}
+
+interface iTunesSearchResult {
+  artworkUrl100: string;
+  collectionViewUrl: string;
+  collectionName: string;
 }
