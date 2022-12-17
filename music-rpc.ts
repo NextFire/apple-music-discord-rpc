@@ -142,7 +142,7 @@ async function searchAlbum(props: iTunesProps): Promise<iTunesInfos> {
     if (result.resultCount === 1) {
       result = result.results[0];
     } else if (result.resultCount > 1) { // If there are multiple results, find the right album
-      result = result.results.find((r) => r.collectionName === album_);
+      result = result.results.find((r: iTunesResult) => r.collectionName === album_);
     } else if (album_.match(/\(.*\)$/)) { // If there are no results, try to remove the part of the album name in parentheses (e.g. "Album (Deluxe Edition)")
       return getInfos(album_.replace(/\(.*\)$/, "").trim());
     }
@@ -244,6 +244,12 @@ async function setActivity(rpc: Client) {
 // TypeScript
 
 type iTunesAppName = "iTunes" | "Music";
+
+interface iTunesResult {
+  artworkUrl100: string;
+  collectionViewUrl: string;
+  collectionName: string;
+}
 
 interface iTunesProps {
   id: number;
