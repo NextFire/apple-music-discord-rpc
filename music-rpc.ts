@@ -85,7 +85,7 @@ async function main() {
   }
 }
 
-// Utils functions
+// macOS/JXA functions
 
 async function getMacOSVersion(): Promise<number> {
   const proc = Deno.run({
@@ -121,6 +121,8 @@ function getProps(): Promise<iTunesProps> {
     };
   }, APP_NAME);
 }
+
+// iTunes Search API
 
 async function searchAlbum(props: iTunesProps): Promise<iTunesInfos> {
   const { artist, album } = props;
@@ -168,6 +170,74 @@ async function _searchAlbum(
   return { artwork, url };
 }
 
+// Activity setter
+
+async function setActivity(rpc: Client) {
+  const open = await isOpen();
+  console.log("isOpen:", open);
+
+  if (!open) {
+    await rpc.clearActivity();
+    return;
+  }
+
+  const state = await getState();
+  console.log("state:", state);
+
+  switch (state) {
+    case "playing": {
+      const props = await getProps();
+      console.log("props:", props);
+
+      let end;
+      if (props.duration) {
+        const delta = (props.duration - props.playerPosition) * 1000;
+        end = Math.ceil(Date.now() + delta);
+      }
+
+      // EVERYTHING must be less than or equal to 128 chars long
+      const activity: Activity = {
+        details: formatStr(props.name),
+        timestamps: { end },
+        assets: { large_image: "appicon" },
+      };
+
+      if (props.artist.length > 0) {
+        activity.state = formatStr(props.artist);
+      }
+
+      // album.length == 0 for radios
+      if (props.album.length > 0) {
+        const infos = await searchAlbum(props);
+        console.log("infos:", infos);
+
+        activity.assets = {
+          large_image: infos.artwork ?? "appicon",
+          large_text: formatStr(props.album),
+        };
+
+        if (infos.url) {
+          activity.buttons = [
+            {
+              label: "Play on Apple Music",
+              url: infos.url,
+            },
+          ];
+        }
+      }
+
+      await rpc.setActivity(activity);
+      break;
+    }
+
+    case "paused":
+    case "stopped": {
+      await rpc.clearActivity();
+      break;
+    }
+  }
+}
+
 /**
  * Format string to specified char limits.
  * Will output the string with 3 chars at the end replaced by '...'.
@@ -180,73 +250,6 @@ function formatStr(s: string, minLength = 2, maxLength = 128) {
   return s.length <= maxLength
     ? s.padEnd(minLength)
     : `${s.slice(0, maxLength - 3)}...`;
-}
-
-// Activity setter
-
-async function setActivity(rpc: Client) {
-  const open = await isOpen();
-  console.log("isOpen:", open);
-
-  if (open) {
-    const state = await getState();
-    console.log("state:", state);
-
-    switch (state) {
-      case "playing": {
-        const props = await getProps();
-        console.log("props:", props);
-
-        let end;
-        if (props.duration) {
-          const delta = (props.duration - props.playerPosition) * 1000;
-          end = Math.ceil(Date.now() + delta);
-        }
-
-        // EVERYTHING must be less than or equal to 128 chars long
-        const activity: Activity = {
-          details: formatStr(props.name),
-          timestamps: { end },
-          assets: { large_image: "appicon" },
-        };
-
-        if (props.artist.length > 0) {
-          activity.state = formatStr(props.artist);
-        }
-
-        // album.length == 0 for radios
-        if (props.album.length > 0) {
-          const infos = await searchAlbum(props);
-          console.log("infos:", infos);
-
-          activity.assets = {
-            large_image: infos.artwork ?? "appicon",
-            large_text: formatStr(props.album),
-          };
-
-          if (infos.url) {
-            activity.buttons = [
-              {
-                label: "Play on Apple Music",
-                url: infos.url,
-              },
-            ];
-          }
-        }
-
-        await rpc.setActivity(activity);
-        break;
-      }
-
-      case "paused":
-      case "stopped": {
-        await rpc.clearActivity();
-        break;
-      }
-    }
-  } else {
-    await rpc.clearActivity();
-  }
 }
 
 // TypeScript
