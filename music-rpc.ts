@@ -124,26 +124,48 @@ function getProps(): Promise<iTunesProps> {
 
 async function searchAlbum(props: iTunesProps): Promise<iTunesInfos> {
   const { artist, album } = props;
-  const query = `${artist} ${album}`;
-  let infos = Cache.get(query);
+  const cacheIndex = `${artist} ${album}`;
+  let infos = Cache.get(cacheIndex);
 
   if (!infos) {
-    const params = new URLSearchParams({
-      media: "music",
-      entity: "album",
-      limit: "1",
-      term: query,
-    });
-    const resp = await fetch(`https://itunes.apple.com/search?${params}`);
-    const result = await resp.json();
-
-    const artwork = result.results[0]?.artworkUrl100 ?? null;
-    const url = result.results[0]?.collectionViewUrl ?? null;
-    infos = { artwork, url };
-    Cache.set(query, infos);
+    infos = await _searchAlbum(artist, album);
+    Cache.set(cacheIndex, infos);
   }
 
   return infos;
+}
+
+async function _searchAlbum(
+  artist: string,
+  album: string
+): Promise<iTunesInfos> {
+  const query = `${artist} ${album}`;
+  const params = new URLSearchParams({
+    media: "music",
+    entity: "album",
+    term: album.includes(artist) ? artist : query,
+    // If the album name contains the artist name,
+    // don't limit the results as the first result might not be the right album
+    limit: album.includes(artist) ? "" : "1",
+  });
+  const resp = await fetch(`https://itunes.apple.com/search?${params}`);
+  const json: iTunesSearchResponse = await resp.json();
+
+  let result: iTunesSearchResult | undefined;
+  if (json.resultCount === 1) {
+    result = json.results[0];
+  } else if (json.resultCount > 1) {
+    // If there are multiple results, find the right album
+    result = json.results.find((r) => r.collectionName === album);
+  } else if (album.match(/\(.*\)$/)) {
+    // If there are no results, try to remove the part
+    // of the album name in parentheses (e.g. "Album (Deluxe Edition)")
+    return await _searchAlbum(artist, album.replace(/\(.*\)$/, "").trim());
+  }
+
+  const artwork = result?.artworkUrl100 ?? null;
+  const url = result?.collectionViewUrl ?? null;
+  return { artwork, url };
 }
 
 /**
@@ -244,4 +266,15 @@ interface iTunesProps {
 interface iTunesInfos {
   artwork: string | null;
   url: string | null;
+}
+
+interface iTunesSearchResponse {
+  resultCount: number;
+  results: iTunesSearchResult[];
+}
+
+interface iTunesSearchResult {
+  artworkUrl100: string;
+  collectionViewUrl: string;
+  collectionName: string;
 }
