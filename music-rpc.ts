@@ -231,6 +231,11 @@ async function setActivity(rpc: Client) {
         }
       }
 
+      activity.buttons?.push({
+        label: "Search on Spotify",
+        url: encodeURI(`https://open.spotify.com/search/${props.name}?si`),
+      });
+
       await rpc.setActivity(activity);
       break;
     }
