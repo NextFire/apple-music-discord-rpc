@@ -1,10 +1,16 @@
 #!/usr/bin/env deno run --unstable --allow-env --allow-run --allow-net --allow-read --allow-write
 
-import type { Activity } from "https://raw.githubusercontent.com/harmonyland/discord_rpc/ba127c20816af15e2c3cd2c17d81248b097e9bd2/mod.ts";
-import { Client } from "https://raw.githubusercontent.com/harmonyland/discord_rpc/ba127c20816af15e2c3cd2c17d81248b097e9bd2/mod.ts";
-import type {} from "https://raw.githubusercontent.com/NextFire/jxa/64b6de1748ea063c01271edbe9846e37a584e1ab/run/global.d.ts";
-import { run } from "https://raw.githubusercontent.com/NextFire/jxa/64b6de1748ea063c01271edbe9846e37a584e1ab/run/mod.ts";
-import type { iTunes } from "https://raw.githubusercontent.com/NextFire/jxa/64b6de1748ea063c01271edbe9846e37a584e1ab/run/types/core.d.ts";
+import type {
+  Activity
+} from "https://raw.githubusercontent.com/harmonyland/discord_rpc/ba127c20816af15e2c3cd2c17d81248b097e9bd2/mod.ts";
+import {
+  Client
+} from "https://raw.githubusercontent.com/harmonyland/discord_rpc/ba127c20816af15e2c3cd2c17d81248b097e9bd2/mod.ts";
+import {run} from "https://raw.githubusercontent.com/NextFire/jxa/64b6de1748ea063c01271edbe9846e37a584e1ab/run/mod.ts";
+import "https://raw.githubusercontent.com/NextFire/jxa/64b6de1748ea063c01271edbe9846e37a584e1ab/run/global.d.ts";
+import type {
+  iTunes
+} from "https://raw.githubusercontent.com/NextFire/jxa/64b6de1748ea063c01271edbe9846e37a584e1ab/run/types/core.d.ts";
 
 // Cache
 
@@ -17,9 +23,9 @@ class Cache {
     return this.#data.get(key);
   }
 
-  static set(key: string, value: iTunesInfos) {
+  static async set(key: string, value: iTunesInfos) {
     this.#data.set(key, value);
-    this.saveCache();
+    await this.saveCache();
   }
 
   static async loadCache() {
@@ -57,11 +63,11 @@ const MACOS_VER = await getMacOSVersion();
 const IS_APPLE_MUSIC = MACOS_VER >= 10.15;
 const APP_NAME: iTunesAppName = IS_APPLE_MUSIC ? "Music" : "iTunes";
 const CLIENT_ID = IS_APPLE_MUSIC ? "773825528921849856" : "979297966739300416";
-start();
+await start();
 
 async function start() {
   await Cache.loadCache();
-  main();
+  await main();
 }
 
 async function main() {
@@ -76,7 +82,7 @@ async function main() {
         console.error(err);
         clearInterval(timer);
         rpc.close();
-        main();
+        await main();
       }
     }, 15e3);
   } catch (err) {
@@ -95,8 +101,7 @@ async function getMacOSVersion(): Promise<number> {
   const rawOutput = await proc.output();
   proc.close();
   const output = new TextDecoder().decode(rawOutput);
-  const version = parseFloat(output.match(/\d+\.\d+/)![0]);
-  return version;
+  return parseFloat(output.match(/\d+\.\d+/)![0]);
 }
 
 function isOpen(): Promise<boolean> {
@@ -131,7 +136,7 @@ async function searchAlbum(props: iTunesProps): Promise<iTunesInfos> {
 
   if (!infos) {
     infos = await _searchAlbum(artist, album);
-    Cache.set(cacheIndex, infos);
+    await Cache.set(cacheIndex, infos);
   }
 
   return infos;
