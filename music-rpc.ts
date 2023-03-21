@@ -1,15 +1,15 @@
 #!/usr/bin/env deno run --unstable --allow-env --allow-run --allow-net --allow-read --allow-write
 
 import type {
-  Activity
+  Activity,
 } from "https://raw.githubusercontent.com/harmonyland/discord_rpc/ba127c20816af15e2c3cd2c17d81248b097e9bd2/mod.ts";
 import {
-  Client
+  Client,
 } from "https://raw.githubusercontent.com/harmonyland/discord_rpc/ba127c20816af15e2c3cd2c17d81248b097e9bd2/mod.ts";
-import {run} from "https://raw.githubusercontent.com/NextFire/jxa/64b6de1748ea063c01271edbe9846e37a584e1ab/run/mod.ts";
+import { run } from "https://raw.githubusercontent.com/NextFire/jxa/64b6de1748ea063c01271edbe9846e37a584e1ab/run/mod.ts";
 import "https://raw.githubusercontent.com/NextFire/jxa/64b6de1748ea063c01271edbe9846e37a584e1ab/run/global.d.ts";
 import type {
-  iTunes
+  iTunes,
 } from "https://raw.githubusercontent.com/NextFire/jxa/64b6de1748ea063c01271edbe9846e37a584e1ab/run/types/core.d.ts";
 
 // Cache
@@ -37,7 +37,7 @@ class Cache {
     } catch (err) {
       console.error(
         err,
-        `No valid ${this.CACHE_FILE} found, generating a new cache...`
+        `No valid ${this.CACHE_FILE} found, generating a new cache...`,
       );
     }
   }
@@ -49,7 +49,7 @@ class Cache {
         JSON.stringify({
           version: this.VERSION,
           data: Array.from(this.#data.entries()),
-        })
+        }),
       );
     } catch (err) {
       console.error(err);
@@ -144,7 +144,7 @@ async function searchAlbum(props: iTunesProps): Promise<iTunesInfos> {
 
 async function _searchAlbum(
   artist: string,
-  album: string
+  album: string,
 ): Promise<iTunesInfos> {
   const query = `${artist} ${album}`;
   const params = new URLSearchParams({
