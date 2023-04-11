@@ -1,3 +1,11 @@
+# fork changes
+
+adds a search in spotify button to the presence
+
+<img width="370" alt="screenshot with fork changes" src="https://user-images.githubusercontent.com/82576556/231290948-fcc55783-e1e9-4785-b468-bdfd08d9c0d0.png">
+
+*below is the upstream readme*
+
 # apple-music-discord-rpc
 
 **[Deno](https://deno.land) + JavaScript for Automation (JXA) Discord Rich
@@ -14,7 +22,7 @@ Works with local tracks and Apple Music streaming service.
 - Shows album artworks and links to Apple Music (when found)
   ([#5](https://github.com/NextFire/apple-music-discord-rpc/pull/5)).
 
-<img width="370" alt="screenshot" src="https://user-images.githubusercontent.com/20094890/178206934-22134782-c58f-40c0-a6c8-6e27369d9a48.png">
+<img width="370" alt="screenshot from upstream" src="https://user-images.githubusercontent.com/20094890/178206934-22134782-c58f-40c0-a6c8-6e27369d9a48.png">
 
 ## Usage
 
