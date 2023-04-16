@@ -1,4 +1,4 @@
-#!/bin/sh -e
+#!/bin/sh -xe
 # cd to project root
 cd "$(dirname "$0")"
 cd ..
