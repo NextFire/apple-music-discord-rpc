@@ -206,6 +206,14 @@ async function setActivity(rpc: Client) {
         activity.state = formatStr(props.artist);
       }
 
+      const query = `${props.artist} ${props.name}`;
+      activity.buttons = [
+        {
+          label: "Search on Spotify",
+          url: encodeURI(`https://open.spotify.com/search/${query}?si`),
+        },
+      ];
+
       // album.length == 0 for radios
       if (props.album.length > 0) {
         const infos = await searchAlbum(props);
@@ -217,12 +225,10 @@ async function setActivity(rpc: Client) {
         };
 
         if (infos.url) {
-          activity.buttons = [
-            {
-              label: "Play on Apple Music",
-              url: infos.url,
-            },
-          ];
+          activity.buttons.unshift({
+            label: "Play on Apple Music",
+            url: infos.url,
+          });
         }
       }
 

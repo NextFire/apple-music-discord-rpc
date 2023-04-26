@@ -6,17 +6,19 @@ Works with local tracks and Apple Music streaming service.
 
 ## Features
 
-- Can be started in background at login.
-- Minimalist: No status bar icon clutter and presence only shown when actually playing something.
-- Shows album artworks and links to Apple Music (when found) ([#5](https://github.com/NextFire/apple-music-discord-rpc/pull/5)).
+- Can be launched in background at login.
+- No status bar icon clutter.
+- Presence is only enabled when actually playing something.
+- Displays album artworks and links to Apple Music (when possible) ([#5](https://github.com/NextFire/apple-music-discord-rpc/pull/5)).
+- Spotify search button ([#59](https://github.com/NextFire/apple-music-discord-rpc/pull/59)).
 
-<img width="370" alt="Capture d’écran 2022-07-11 à 09 00 50" src="https://user-images.githubusercontent.com/20094890/178206934-22134782-c58f-40c0-a6c8-6e27369d9a48.png">
+<img width="370" src="https://hikari.butaishoujo.moe/p/545608d1/Capture%20d’écran%202023-04-26%20à%2010.49.08.png">
 
-## Usage
+## Getting Started
 
-Choose one of the two methods below to install the script and enable the launch agent that starts it on login.
+Choose one of the two methods below to install the script and enable the macOS launch agent that starts it on login.
 
-### Homebrew
+### Homebrew (Recommended)
 
 #### Install
 
@@ -32,9 +34,9 @@ These commands
 
 - add [this tap](https://github.com/NextFire/homebrew-tap) to Homebrew,
 - install its `apple-music-discord-rpc` formula (and Deno),
-- enable the launch agent on login and start it.
+- enable the launch agent and start it immediately.
 
-The `music-rpc.ts` executable is also added to `PATH`.
+The `music-rpc.ts` executable is now also in `PATH`.
 
 #### Uninstall
 
@@ -44,11 +46,11 @@ brew remove apple-music-discord-rpc
 brew untap nextfire/tap
 ```
 
-### Scripts
+### Shell Scripts
 
 #### Install
 
-Install [Deno](https://deno.land) then clone the repository and execute [`install.sh`](/scripts/install.sh):
+Install [Deno](https://deno.land), clone the repository and execute [`install.sh`](/scripts/install.sh):
 
 ```
 git clone https://github.com/NextFire/apple-music-discord-rpc.git
@@ -56,7 +58,7 @@ cd apple-music-discord-rpc/
 ./scripts/install.sh
 ```
 
-It will copy the [launch agent](/scripts/moe.yuru.music-rpc.plist) into `~/Library/LaunchAgents/` and correctly edit it.
+It will copy the [launch agent](/scripts/moe.yuru.music-rpc.plist) into `~/Library/LaunchAgents/` and edit it accordingly.
 
 #### Uninstall
 
