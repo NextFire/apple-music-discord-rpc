@@ -206,7 +206,7 @@ async function setActivity(rpc: Client) {
         activity.state = formatStr(props.artist);
       }
 
-      const query = `${props.artist} ${props.name}`;
+      const query = `artist:${props.artist} track:${props.name}`;
       activity.buttons = [
         {
           label: "Search on Spotify",
