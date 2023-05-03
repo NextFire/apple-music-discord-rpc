@@ -157,7 +157,16 @@ async function _searchAlbum(
     result = json.results[0];
   } else if (json.resultCount > 1) {
     // If there are multiple results, find the right album
-    result = json.results.find((r) => r.collectionName.includes(album));
+    // Use includes as imported songs may format it differently
+    // Also put them all to lowercase in case of differing capitalisation
+    result = json.results.find((r) =>
+      r.collectionName.toLowerCase().includes(album.toLowerCase()) &&
+      r.trackName.toLowerCase().includes(song.toLowerCase()) &&
+      // First split the artist's name for collabs
+      r.artistName.toLowerCase().split("&").every((rartist) =>
+        artist.toLowerCase().includes(rartist.trim())
+      )
+    );
   } else if (album.match(/\(.*\)$/)) {
     // If there are no results, try to remove the part
     // of the album name in parentheses (e.g. "Album (Deluxe Edition)")
@@ -283,6 +292,8 @@ interface iTunesSearchResponse {
 
 interface iTunesSearchResult {
   artworkUrl100: string;
+  artistName: string;
+  trackName: string;
   collectionViewUrl: string;
   collectionName: string;
 }
