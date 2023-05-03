@@ -9,7 +9,7 @@ import type { iTunes } from "https://raw.githubusercontent.com/NextFire/jxa/v0.0
 // Cache
 
 class Cache {
-  static VERSION = 3;
+  static VERSION = 4;
   static CACHE_FILE = "cache.json";
   static #data: Map<string, iTunesInfos> = new Map();
 
@@ -125,12 +125,12 @@ function getProps(): Promise<iTunesProps> {
 // iTunes Search API
 
 async function searchAlbum(props: iTunesProps): Promise<iTunesInfos> {
-  const { artist, album } = props;
-  const cacheIndex = `${artist} ${album}`;
+  const { name, artist, album } = props;
+  const cacheIndex = `${name} ${artist} ${album}`;
   let infos = Cache.get(cacheIndex);
 
   if (!infos) {
-    infos = await _searchAlbum(artist, album);
+    infos = await _searchAlbum(name, artist, album);
     Cache.set(cacheIndex, infos);
   }
 
@@ -138,17 +138,16 @@ async function searchAlbum(props: iTunesProps): Promise<iTunesInfos> {
 }
 
 async function _searchAlbum(
+  song: string,
   artist: string,
   album: string
 ): Promise<iTunesInfos> {
-  const query = `${artist} ${album}`;
+  // Asterisks tend to result in no songs found, and songs are usually able to be found without it
+  const query = `${song} ${artist} ${album}`.replace("*", "");
   const params = new URLSearchParams({
     media: "music",
-    entity: "album",
-    term: album.includes(artist) ? artist : query,
-    // If the album name contains the artist name,
-    // don't limit the results as the first result might not be the right album
-    limit: album.includes(artist) ? "" : "1",
+    entity: "song",
+    term: query
   });
   const resp = await fetch(`https://itunes.apple.com/search?${params}`);
   const json: iTunesSearchResponse = await resp.json();
@@ -158,11 +157,11 @@ async function _searchAlbum(
     result = json.results[0];
   } else if (json.resultCount > 1) {
     // If there are multiple results, find the right album
-    result = json.results.find((r) => r.collectionName === album);
+    result = json.results.find((r) => r.collectionName.includes(album));
   } else if (album.match(/\(.*\)$/)) {
     // If there are no results, try to remove the part
     // of the album name in parentheses (e.g. "Album (Deluxe Edition)")
-    return await _searchAlbum(artist, album.replace(/\(.*\)$/, "").trim());
+    return await _searchAlbum(song, artist, album.replace(/\(.*\)$/, "").trim());
   }
 
   const artwork = result?.artworkUrl100 ?? null;
