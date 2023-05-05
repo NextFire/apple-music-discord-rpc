@@ -147,7 +147,7 @@ async function _searchAlbum(
   const params = new URLSearchParams({
     media: "music",
     entity: "song",
-    term: query
+    term: query,
   });
   const resp = await fetch(`https://itunes.apple.com/search?${params}`);
   const json: iTunesSearchResponse = await resp.json();
@@ -159,14 +159,19 @@ async function _searchAlbum(
     // If there are multiple results, find the right album
     // Use includes as imported songs may format it differently
     // Also put them all to lowercase in case of differing capitalisation
-    result = json.results.find((r) =>
-      r.collectionName.toLowerCase().includes(album.toLowerCase()) &&
-      r.trackName.toLowerCase().includes(song.toLowerCase())
+    result = json.results.find(
+      (r) =>
+        r.collectionName.toLowerCase().includes(album.toLowerCase()) &&
+        r.trackName.toLowerCase().includes(song.toLowerCase())
     );
   } else if (album.match(/\(.*\)$/)) {
     // If there are no results, try to remove the part
     // of the album name in parentheses (e.g. "Album (Deluxe Edition)")
-    return await _searchAlbum(song, artist, album.replace(/\(.*\)$/, "").trim());
+    return await _searchAlbum(
+      song,
+      artist,
+      album.replace(/\(.*\)$/, "").trim()
+    );
   }
 
   const artwork = result?.artworkUrl100 ?? null;
