@@ -161,11 +161,7 @@ async function _searchAlbum(
     // Also put them all to lowercase in case of differing capitalisation
     result = json.results.find((r) =>
       r.collectionName.toLowerCase().includes(album.toLowerCase()) &&
-      r.trackName.toLowerCase().includes(song.toLowerCase()) &&
-      // First split the artist's name for collabs
-      r.artistName.toLowerCase().split("&").every((rartist) =>
-        artist.toLowerCase().includes(rartist.trim())
-      )
+      r.trackName.toLowerCase().includes(song.toLowerCase())
     );
   } else if (album.match(/\(.*\)$/)) {
     // If there are no results, try to remove the part
@@ -292,7 +288,6 @@ interface iTunesSearchResponse {
 
 interface iTunesSearchResult {
   artworkUrl100: string;
-  artistName: string;
   trackName: string;
   collectionViewUrl: string;
   collectionName: string;
