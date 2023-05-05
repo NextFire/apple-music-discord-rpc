@@ -88,14 +88,10 @@ async function main() {
 // macOS/JXA functions
 
 async function getMacOSVersion(): Promise<number> {
-  const proc = Deno.run({
-    cmd: ["sw_vers", "-productVersion"],
-    stdout: "piped",
-  });
-  const rawOutput = await proc.output();
-  proc.close();
-  const output = new TextDecoder().decode(rawOutput);
-  const version = parseFloat(output.match(/\d+\.\d+/)![0]);
+  const cmd = new Deno.Command("sw_vers", { args: ["-productVersion"] });
+  const output = await cmd.output();
+  const decoded = new TextDecoder().decode(output.stdout);
+  const version = parseFloat(decoded.match(/\d+\.\d+/)![0]);
   return version;
 }
 
