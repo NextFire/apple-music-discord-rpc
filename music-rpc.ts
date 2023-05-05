@@ -124,20 +124,20 @@ function getProps(): Promise<iTunesProps> {
 
 // iTunes Search API
 
-async function searchAlbum(props: iTunesProps): Promise<iTunesInfos> {
+async function iTunesSearch(props: iTunesProps): Promise<iTunesInfos> {
   const { name, artist, album } = props;
   const cacheIndex = `${name} ${artist} ${album}`;
   let infos = Cache.get(cacheIndex);
 
   if (!infos) {
-    infos = await _searchAlbum(name, artist, album);
+    infos = await _iTunesSearch(name, artist, album);
     Cache.set(cacheIndex, infos);
   }
 
   return infos;
 }
 
-async function _searchAlbum(
+async function _iTunesSearch(
   song: string,
   artist: string,
   album: string
@@ -167,7 +167,7 @@ async function _searchAlbum(
   } else if (album.match(/\(.*\)$/)) {
     // If there are no results, try to remove the part
     // of the album name in parentheses (e.g. "Album (Deluxe Edition)")
-    return await _searchAlbum(
+    return await _iTunesSearch(
       song,
       artist,
       album.replace(/\(.*\)$/, "").trim()
@@ -225,7 +225,7 @@ async function setActivity(rpc: Client) {
 
       // album.length == 0 for radios
       if (props.album.length > 0) {
-        const infos = await searchAlbum(props);
+        const infos = await iTunesSearch(props);
         console.log("infos:", infos);
 
         activity.assets = {
