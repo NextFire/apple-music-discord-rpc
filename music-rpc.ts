@@ -175,7 +175,7 @@ async function _iTunesSearch(
   }
 
   const artwork = result?.artworkUrl100 ?? null;
-  const url = result?.collectionViewUrl ?? null;
+  const url = result?.trackViewUrl ?? null;
   return { artwork, url };
 }
 
@@ -292,8 +292,8 @@ interface iTunesSearchResponse {
 }
 
 interface iTunesSearchResult {
-  artworkUrl100: string;
   trackName: string;
-  collectionViewUrl: string;
   collectionName: string;
+  artworkUrl100: string;
+  trackViewUrl: string;
 }
