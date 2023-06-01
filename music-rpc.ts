@@ -9,7 +9,7 @@ import type { iTunes } from "https://raw.githubusercontent.com/NextFire/jxa/v0.0
 // Cache
 
 class Cache {
-  static VERSION = 3;
+  static VERSION = 4;
   static CACHE_FILE = "cache.json";
   static #data: Map<string, iTunesInfos> = new Map();
 
@@ -124,31 +124,30 @@ function getProps(): Promise<iTunesProps> {
 
 // iTunes Search API
 
-async function searchAlbum(props: iTunesProps): Promise<iTunesInfos> {
-  const { artist, album } = props;
-  const cacheIndex = `${artist} ${album}`;
+async function iTunesSearch(props: iTunesProps): Promise<iTunesInfos> {
+  const { name, artist, album } = props;
+  const cacheIndex = `${name} ${artist} ${album}`;
   let infos = Cache.get(cacheIndex);
 
   if (!infos) {
-    infos = await _searchAlbum(artist, album);
+    infos = await _iTunesSearch(name, artist, album);
     Cache.set(cacheIndex, infos);
   }
 
   return infos;
 }
 
-async function _searchAlbum(
+async function _iTunesSearch(
+  song: string,
   artist: string,
   album: string
 ): Promise<iTunesInfos> {
-  const query = `${artist} ${album}`;
+  // Asterisks tend to result in no songs found, and songs are usually able to be found without it
+  const query = `${song} ${artist} ${album}`.replace("*", "");
   const params = new URLSearchParams({
     media: "music",
-    entity: "album",
-    term: album.includes(artist) ? artist : query,
-    // If the album name contains the artist name,
-    // don't limit the results as the first result might not be the right album
-    limit: album.includes(artist) ? "" : "1",
+    entity: "song",
+    term: query,
   });
   const resp = await fetch(`https://itunes.apple.com/search?${params}`);
   const json: iTunesSearchResponse = await resp.json();
@@ -158,15 +157,25 @@ async function _searchAlbum(
     result = json.results[0];
   } else if (json.resultCount > 1) {
     // If there are multiple results, find the right album
-    result = json.results.find((r) => r.collectionName === album);
+    // Use includes as imported songs may format it differently
+    // Also put them all to lowercase in case of differing capitalisation
+    result = json.results.find(
+      (r) =>
+        r.collectionName.toLowerCase().includes(album.toLowerCase()) &&
+        r.trackName.toLowerCase().includes(song.toLowerCase())
+    );
   } else if (album.match(/\(.*\)$/)) {
     // If there are no results, try to remove the part
     // of the album name in parentheses (e.g. "Album (Deluxe Edition)")
-    return await _searchAlbum(artist, album.replace(/\(.*\)$/, "").trim());
+    return await _iTunesSearch(
+      song,
+      artist,
+      album.replace(/\(.*\)$/, "").trim()
+    );
   }
 
   const artwork = result?.artworkUrl100 ?? null;
-  const url = result?.collectionViewUrl ?? null;
+  const url = result?.trackViewUrl ?? null;
   return { artwork, url };
 }
 
@@ -216,7 +225,7 @@ async function setActivity(rpc: Client) {
 
       // album.length == 0 for radios
       if (props.album.length > 0) {
-        const infos = await searchAlbum(props);
+        const infos = await iTunesSearch(props);
         console.log("infos:", infos);
 
         activity.assets = {
@@ -283,7 +292,8 @@ interface iTunesSearchResponse {
 }
 
 interface iTunesSearchResult {
-  artworkUrl100: string;
-  collectionViewUrl: string;
+  trackName: string;
   collectionName: string;
+  artworkUrl100: string;
+  trackViewUrl: string;
 }
