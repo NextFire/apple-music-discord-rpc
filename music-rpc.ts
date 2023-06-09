@@ -6,63 +6,16 @@ import type {} from "https://raw.githubusercontent.com/NextFire/jxa/v0.0.4/run/g
 import { run } from "https://raw.githubusercontent.com/NextFire/jxa/v0.0.4/run/mod.ts";
 import type { iTunes } from "https://raw.githubusercontent.com/NextFire/jxa/v0.0.4/run/types/core.d.ts";
 
-// Cache
-
-class Cache {
-  static VERSION = 4;
-  static CACHE_FILE = "cache.json";
-  static #data: Map<string, iTunesInfos> = new Map();
-
-  static get(key: string) {
-    return this.#data.get(key);
-  }
-
-  static set(key: string, value: iTunesInfos) {
-    this.#data.set(key, value);
-    this.saveCache();
-  }
-
-  static async loadCache() {
-    try {
-      const text = await Deno.readTextFile(this.CACHE_FILE);
-      const data = JSON.parse(text);
-      if (data.version !== this.VERSION) throw new Error("Old cache");
-      this.#data = new Map(data.data);
-    } catch (err) {
-      console.error(
-        err,
-        `No valid ${this.CACHE_FILE} found, generating a new cache...`
-      );
-    }
-  }
-
-  static async saveCache() {
-    try {
-      await Deno.writeTextFile(
-        this.CACHE_FILE,
-        JSON.stringify({
-          version: this.VERSION,
-          data: Array.from(this.#data.entries()),
-        })
-      );
-    } catch (err) {
-      console.error(err);
-    }
-  }
-}
-
 // Main part
 
 const MACOS_VER = await getMacOSVersion();
 const IS_APPLE_MUSIC = MACOS_VER >= 10.15;
 const APP_NAME: iTunesAppName = IS_APPLE_MUSIC ? "Music" : "iTunes";
 const CLIENT_ID = IS_APPLE_MUSIC ? "773825528921849856" : "979297966739300416";
-start();
 
-async function start() {
-  await Cache.loadCache();
-  main();
-}
+const KV = await Deno.openKv("kv.sqlite3");
+const CACHE_VERSION = 1;
+main();
 
 async function main() {
   try {
@@ -122,12 +75,15 @@ function getProps(): Promise<iTunesProps> {
 
 async function iTunesSearch(props: iTunesProps): Promise<iTunesInfos> {
   const { name, artist, album } = props;
-  const cacheIndex = `${name} ${artist} ${album}`;
-  let infos = Cache.get(cacheIndex);
+  const key = [name, artist, album];
+  const cached = await KV.get<{ version: number; infos: iTunesInfos }>(key);
 
-  if (!infos) {
+  let infos: iTunesInfos;
+  if (cached.value?.version === CACHE_VERSION) {
+    infos = cached.value.infos;
+  } else {
     infos = await _iTunesSearch(name, artist, album);
-    Cache.set(cacheIndex, infos);
+    KV.set(key, { version: CACHE_VERSION, infos });
   }
 
   return infos;
