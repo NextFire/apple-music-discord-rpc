@@ -134,9 +134,9 @@ async function iTunesSearch(props: iTunesProps): Promise<iTunesInfos> {
 }
 
 async function _search(
-    song: string,
-    artist: string,
-    album: string
+  song: string,
+  artist: string,
+  album: string
 ): Promise<>
 
 async function _iTunesSearch(
