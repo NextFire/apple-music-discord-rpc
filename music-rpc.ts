@@ -133,6 +133,12 @@ async function iTunesSearch(props: iTunesProps): Promise<iTunesInfos> {
   return infos;
 }
 
+async function _search(
+    song: string,
+    artist: string,
+    album: string
+): Promise<>
+
 async function _iTunesSearch(
   song: string,
   artist: string,
@@ -170,9 +176,42 @@ async function _iTunesSearch(
     );
   }
 
-  const artwork = result?.artworkUrl100 ?? null;
+  let artwork: string;
+  
+  if (!result?.artworkUrl100)
+    artwork = await _MBArtworkGetter(artist, album);
+  else
+    artwork = result?.artworkUrl100 ?? null;
+    
   const url = result?.trackViewUrl ?? null;
   return { artwork, url };
+}
+
+// MusicBrainz Artwork Getter
+async function _MBArtworkGetter(
+     artist: string,
+     album: string
+): Promise<string> {
+  const query = `${artist} ${album}`.replace("*", "");
+  const params = new URLSearchParams({
+    fmt: "json",
+    limit: 1,
+    query: query
+  });
+  const resp = await fetch(`https://musicbrainz.org/ws/2/release?${params}`);
+  const json = await resp.json();
+  let result;
+  if (json.count === 0)
+    return null;
+  
+  result = json.releases[0].id;
+    
+  // attempt to grab album art from mbid
+  result = await fetch(`https://coverartarchive.org/release/${result}/front`);
+  if (!result.ok)
+    return null;
+
+  return result?.url ?? null;
 }
 
 // Activity setter
