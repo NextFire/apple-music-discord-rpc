@@ -179,7 +179,7 @@ async function _iTunesSearch(
   let artwork: string;
   
   if (!result?.artworkUrl100)
-    artwork = await _MBArtworkGetter(artist, album);
+    artwork = await _MBArtworkGetter(artist, song, album);
   else
     artwork = result?.artworkUrl100 ?? null;
     
@@ -189,10 +189,12 @@ async function _iTunesSearch(
 
 // MusicBrainz Artwork Getter
 async function _MBArtworkGetter(
-     artist: string,
-     album: string
+  artist: string,
+  song: string,
+  album: string
 ): Promise<string> {
   const query = `${artist} ${album}`.replace("*", "");
+  console.log(query);
   const params = new URLSearchParams({
     fmt: "json",
     limit: 1,
