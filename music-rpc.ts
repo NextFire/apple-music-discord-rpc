@@ -193,11 +193,26 @@ async function _MBArtworkGetter(
   song: string,
   album: string
 ): Promise<string> {
-  const query = `${artist} ${album}`.replace("*", "");
-  console.log(query);
+  let query: string = "";
+  let albumName: string = album;
+  const forbiddenName: Array<string> = [
+    "", "Various Artist"
+  ];
+  
+  if (!forbiddenName.every( elem => artist.includes(elem) ))
+    query += artist + " "
+  
+  if (!forbiddenName.every( elem => album.includes(elem) ))
+    query += album
+  else
+    query += song
+
+  console.log("find: " + query)
+  
+  query = query.replace("*", "");
   const params = new URLSearchParams({
     fmt: "json",
-    limit: 1,
+    limit: 10,
     query: query
   });
   const resp = await fetch(`https://musicbrainz.org/ws/2/release?${params}`);
@@ -206,12 +221,13 @@ async function _MBArtworkGetter(
   if (json.count === 0)
     return null;
   
-  result = json.releases[0].id;
-    
-  // attempt to grab album art from mbid
-  result = await fetch(`https://coverartarchive.org/release/${result}/front`);
-  if (!result.ok)
-    return null;
+  for (let i = 0; i < 11; i++) {
+    result = json.releases[i].id;
+    // attempt to grab album art from mbid
+    result = await fetch(`https://coverartarchive.org/release/${result}/front`);
+    if (result.ok)
+      break
+  }
 
   return result?.url ?? null;
 }
