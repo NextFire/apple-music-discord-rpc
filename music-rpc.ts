@@ -186,7 +186,7 @@ async function _MBArtworkGetter(
   artist: string,
   song: string,
   album: string
-): Promise<string> {
+): Promise<string | null> {
   let query: string = "";
   let albumName: string = album;
   const forbiddenName: Array<string> = [
@@ -206,9 +206,10 @@ async function _MBArtworkGetter(
   query = query.replace("*", "");
   const params = new URLSearchParams({
     fmt: "json",
-    limit: 10,
+    limit: "10",
     query: query
   });
+  
   const resp = await fetch(`https://musicbrainz.org/ws/2/release?${params}`);
   const json = await resp.json();
   let result: string;
