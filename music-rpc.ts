@@ -133,12 +133,6 @@ async function iTunesSearch(props: iTunesProps): Promise<iTunesInfos> {
   return infos;
 }
 
-async function _search(
-  song: string,
-  artist: string,
-  album: string
-): Promise<>
-
 async function _iTunesSearch(
   song: string,
   artist: string,
@@ -217,7 +211,7 @@ async function _MBArtworkGetter(
   });
   const resp = await fetch(`https://musicbrainz.org/ws/2/release?${params}`);
   const json = await resp.json();
-  let result;
+  let result: string;
   if (json.count === 0)
     return null;
   
