@@ -172,10 +172,7 @@ async function _iTunesSearch(
 
   let artwork: string;
   
-  if (!result?.artworkUrl100)
-    artwork = await _MBArtworkGetter(artist, song, album);
-  else
-    artwork = result?.artworkUrl100 ?? null;
+  artwork = result?.artworkUrl100 ?? await _MBArtworkGetter(artist, song, album) ?? null;
     
   const url = result?.trackViewUrl ?? null;
   return { artwork, url };
@@ -186,7 +183,7 @@ async function _MBArtworkGetter(
   artist: string,
   song: string,
   album: string
-): Promise<string | null> {
+): Promise<string> {
   let query: string = "";
   let albumName: string = album;
   const forbiddenName: Array<string> = [
@@ -200,8 +197,6 @@ async function _MBArtworkGetter(
     query += album
   else
     query += song
-
-  console.log("find: " + query)
   
   query = query.replace("*", "");
   const params = new URLSearchParams({
@@ -210,21 +205,25 @@ async function _MBArtworkGetter(
     query: query
   });
   
-  const resp = await fetch(`https://musicbrainz.org/ws/2/release?${params}`);
-  const json = await resp.json();
-  let result: string;
-  if (json.count === 0)
-    return null;
+  let resp: Response;
+  let result: string = "";
   
-  for (let i = 0; i < 11; i++) {
-    result = json.releases[i].id;
-    // attempt to grab album art from mbid
-    result = await fetch(`https://coverartarchive.org/release/${result}/front`);
-    if (result.ok)
-      break
+  resp = await fetch(`https://musicbrainz.org/ws/2/release?${params}`);
+  const json = await resp.json();
+  
+  if (json.count >= 0) {
+    for (let i = 0; i < 11; i++) {
+      result = json.releases[i].id;
+      resp = await fetch(`https://coverartarchive.org/release/${result}/front`);
+      if (resp.ok) {
+        console.log(resp)
+        result = resp.url.toString();
+        break;
+      }
+    }
   }
-
-  return result?.url ?? null;
+  
+  return result ?? null;
 }
 
 // Activity setter
