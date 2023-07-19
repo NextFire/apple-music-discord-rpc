@@ -180,25 +180,29 @@ async function _getTrackExtras(
 // MusicBrainz Artwork Getter
 
 const MB_EXCLUDED_NAMES = ["", "Various Artist"];
+const luceneEscape = (term: string) =>
+  term.replace(/([+\-&|!(){}\[\]^"~*?:\\])/g, "\\$1");
+const removeParenthesesContent = (term: string) =>
+  term.replace(/\([^)]*\)/g, "").trim();
 
 async function _getMBArtwork(
   artist: string,
   song: string,
   album: string
 ): Promise<string | undefined> {
-  let query = "";
-
+  const queryTerms = [];
   if (!MB_EXCLUDED_NAMES.every((elem) => artist.includes(elem))) {
-    query += artist + " ";
+    queryTerms.push(
+      `artist:"${luceneEscape(removeParenthesesContent(artist))}"`
+    );
   }
-
   if (!MB_EXCLUDED_NAMES.every((elem) => album.includes(elem))) {
-    query += album;
+    queryTerms.push(`release:"${luceneEscape(album)}"`);
   } else {
-    query += song;
+    queryTerms.push(`recording:"${luceneEscape(song)}"`);
   }
+  const query = queryTerms.join(" ");
 
-  query = query.replace("*", "");
   const params = new URLSearchParams({
     fmt: "json",
     limit: "10",
