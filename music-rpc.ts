@@ -9,15 +9,15 @@ import type { iTunes } from "https://raw.githubusercontent.com/NextFire/jxa/v0.0
 // Cache
 
 class Cache {
-  static VERSION = 4;
+  static VERSION = 5;
   static CACHE_FILE = "cache.json";
-  static #data: Map<string, iTunesInfos> = new Map();
+  static #data: Map<string, TrackExtras> = new Map();
 
   static get(key: string) {
     return this.#data.get(key);
   }
 
-  static set(key: string, value: iTunesInfos) {
+  static set(key: string, value: TrackExtras) {
     this.#data.set(key, value);
     this.saveCache();
   }
@@ -88,14 +88,10 @@ async function main() {
 // macOS/JXA functions
 
 async function getMacOSVersion(): Promise<number> {
-  const proc = Deno.run({
-    cmd: ["sw_vers", "-productVersion"],
-    stdout: "piped",
-  });
-  const rawOutput = await proc.output();
-  proc.close();
-  const output = new TextDecoder().decode(rawOutput);
-  const version = parseFloat(output.match(/\d+\.\d+/)![0]);
+  const cmd = new Deno.Command("sw_vers", { args: ["-productVersion"] });
+  const output = await cmd.output();
+  const decoded = new TextDecoder().decode(output.stdout);
+  const version = parseFloat(decoded.match(/\d+\.\d+/)![0]);
   return version;
 }
 
@@ -122,26 +118,26 @@ function getProps(): Promise<iTunesProps> {
   }, APP_NAME);
 }
 
-// iTunes Search API
-
-async function iTunesSearch(props: iTunesProps): Promise<iTunesInfos> {
+async function getTrackExtras(props: iTunesProps): Promise<TrackExtras> {
   const { name, artist, album } = props;
   const cacheIndex = `${name} ${artist} ${album}`;
   let infos = Cache.get(cacheIndex);
 
   if (!infos) {
-    infos = await _iTunesSearch(name, artist, album);
+    infos = await _getTrackExtras(name, artist, album);
     Cache.set(cacheIndex, infos);
   }
 
   return infos;
 }
 
-async function _iTunesSearch(
+// iTunes Search API
+
+async function _getTrackExtras(
   song: string,
   artist: string,
   album: string
-): Promise<iTunesInfos> {
+): Promise<TrackExtras> {
   // Asterisks tend to result in no songs found, and songs are usually able to be found without it
   const query = `${song} ${artist} ${album}`.replace("*", "");
   const params = new URLSearchParams({
@@ -167,16 +163,69 @@ async function _iTunesSearch(
   } else if (album.match(/\(.*\)$/)) {
     // If there are no results, try to remove the part
     // of the album name in parentheses (e.g. "Album (Deluxe Edition)")
-    return await _iTunesSearch(
+    return await _getTrackExtras(
       song,
       artist,
       album.replace(/\(.*\)$/, "").trim()
     );
   }
 
-  const artwork = result?.artworkUrl100 ?? null;
-  const url = result?.trackViewUrl ?? null;
-  return { artwork, url };
+  const artworkUrl =
+    result?.artworkUrl100 ?? (await _getMBArtwork(artist, song, album)) ?? null;
+
+  const iTunesUrl = result?.trackViewUrl ?? null;
+  return { artworkUrl, iTunesUrl };
+}
+
+// MusicBrainz Artwork Getter
+
+const MB_EXCLUDED_NAMES = ["", "Various Artist"];
+const luceneEscape = (term: string) =>
+  term.replace(/([+\-&|!(){}\[\]^"~*?:\\])/g, "\\$1");
+const removeParenthesesContent = (term: string) =>
+  term.replace(/\([^)]*\)/g, "").trim();
+
+async function _getMBArtwork(
+  artist: string,
+  song: string,
+  album: string
+): Promise<string | undefined> {
+  const queryTerms = [];
+  if (!MB_EXCLUDED_NAMES.every((elem) => artist.includes(elem))) {
+    queryTerms.push(
+      `artist:"${luceneEscape(removeParenthesesContent(artist))}"`
+    );
+  }
+  if (!MB_EXCLUDED_NAMES.every((elem) => album.includes(elem))) {
+    queryTerms.push(`release:"${luceneEscape(album)}"`);
+  } else {
+    queryTerms.push(`recording:"${luceneEscape(song)}"`);
+  }
+  const query = queryTerms.join(" ");
+
+  const params = new URLSearchParams({
+    fmt: "json",
+    limit: "10",
+    query,
+  });
+
+  let resp: Response;
+  let result: string | undefined;
+
+  resp = await fetch(`https://musicbrainz.org/ws/2/release?${params}`);
+  const json: MBReleaseLookupResponse = await resp.json();
+
+  for (const release of json.releases) {
+    resp = await fetch(
+      `https://coverartarchive.org/release/${release.id}/front`
+    );
+    if (resp.ok) {
+      result = resp.url;
+      break;
+    }
+  }
+
+  return result;
 }
 
 // Activity setter
@@ -215,30 +264,37 @@ async function setActivity(rpc: Client) {
         activity.state = formatStr(props.artist);
       }
 
-      const query = `artist:${props.artist} track:${props.name}`;
-      activity.buttons = [
-        {
-          label: "Search on Spotify",
-          url: encodeURI(`https://open.spotify.com/search/${query}?si`),
-        },
-      ];
-
       // album.length == 0 for radios
       if (props.album.length > 0) {
-        const infos = await iTunesSearch(props);
+        const buttons = [];
+
+        const infos = await getTrackExtras(props);
         console.log("infos:", infos);
 
         activity.assets = {
-          large_image: infos.artwork ?? "appicon",
+          large_image: infos.artworkUrl ?? "appicon",
           large_text: formatStr(props.album),
         };
 
-        if (infos.url) {
-          activity.buttons.unshift({
+        if (infos.iTunesUrl) {
+          buttons.push({
             label: "Play on Apple Music",
-            url: infos.url,
+            url: infos.iTunesUrl,
           });
         }
+
+        const query = `artist:${props.artist} track:${props.name}`;
+        const spotifyUrl = encodeURI(
+          `https://open.spotify.com/search/${query}?si`
+        );
+        if (spotifyUrl.length <= 512) {
+          buttons.push({
+            label: "Search on Spotify",
+            url: spotifyUrl,
+          });
+        }
+
+        if (buttons.length > 0) activity.buttons = buttons;
       }
 
       await rpc.setActivity(activity);
@@ -281,9 +337,9 @@ interface iTunesProps {
   playerPosition: number;
 }
 
-interface iTunesInfos {
-  artwork: string | null;
-  url: string | null;
+interface TrackExtras {
+  artworkUrl: string | null;
+  iTunesUrl: string | null;
 }
 
 interface iTunesSearchResponse {
@@ -296,4 +352,12 @@ interface iTunesSearchResult {
   collectionName: string;
   artworkUrl100: string;
   trackViewUrl: string;
+}
+
+interface MBReleaseLookupResponse {
+  releases: MBRelease[];
+}
+
+interface MBRelease {
+  id: string;
 }
