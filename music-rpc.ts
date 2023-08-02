@@ -284,9 +284,7 @@ async function setActivity(rpc: Client) {
         }
 
         const query = encodeURIComponent(`artist:${props.artist} track:${props.name}`);
-        const spotifyUrl = encodeURI(
-          `https://open.spotify.com/search/${query}?si`
-        );
+        const spotifyUrl = `https://open.spotify.com/search/${query}?si`;
         if (spotifyUrl.length <= 512) {
           buttons.push({
             label: "Search on Spotify",
