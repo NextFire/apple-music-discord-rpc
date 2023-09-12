@@ -9,10 +9,11 @@ Works with local tracks and Apple Music streaming service.
 - Can be launched in background at login.
 - No status bar icon clutter.
 - Presence is only enabled when actually playing something.
-- Displays album artworks and links to Apple Music (when possible) ([#5](https://github.com/NextFire/apple-music-discord-rpc/pull/5)).
+- Apple Music matching ([#5](https://github.com/NextFire/apple-music-discord-rpc/pull/5)).
 - Spotify search button ([#59](https://github.com/NextFire/apple-music-discord-rpc/pull/59)).
+- MusicBrainz artwork fallback ([#66](https://github.com/NextFire/apple-music-discord-rpc/pull/66))
 
-<img width="370" src="https://hikari.butaishoujo.moe/p/545608d1/Capture%20d’écran%202023-04-26%20à%2010.49.08.png">
+<img width="364" alt="Capture d’écran 2023-09-12 à 17 33 34" src="https://github.com/NextFire/apple-music-discord-rpc/assets/20094890/6b851575-176b-408d-83a1-c1f5c5106d16">
 
 ## Getting Started
 
