@@ -11,7 +11,7 @@ jobs:
   compile:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Get commit SHA
         id: version
         run: echo "::set-output name=commit_sha::$(git log -n1 --format='%h')"
