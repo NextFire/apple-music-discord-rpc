@@ -1,0 +1,26 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["patch", "digest"],
+      "automerge": true,
+      "automergeType": "branch"
+    },
+    {
+      "matchUpdateTypes": ["minor"],
+      "matchCurrentVersion": "!/^0/",
+      "automerge": true,
+      "automergeType": "branch"
+    }
+  ],
+  "regexManagers": [
+    {
+      "fileMatch": [".*\\.ts$"],
+      "matchStrings": [
+        "import .*\"(?<depName>https:\\/\\/.*)@(?<currentValue>[^\\/]*)\\/.*\";"
+      ],
+      "datasourceTemplate": "deno"
+    }
+  ]
+}
