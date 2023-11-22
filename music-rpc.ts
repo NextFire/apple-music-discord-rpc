@@ -257,11 +257,14 @@ async function setActivity(rpc: Client) {
       const activity: Activity = {
         details: formatStr(props.name),
         timestamps: { end },
-        assets: { large_image: "appicon" },
+        assets: { 
+          large_image: "appicon",
+          small_image: "https://i.imgur.com/onH1k7Y.gif"
+        },
       };
 
       if (props.artist.length > 0) {
-        activity.state = formatStr(props.artist);
+        activity.state = formatStr("by " + props.artist);
       }
 
       // album.length == 0 for radios
@@ -274,6 +277,7 @@ async function setActivity(rpc: Client) {
         activity.assets = {
           large_image: infos.artworkUrl ?? "appicon",
           large_text: formatStr(props.album),
+          small_image: "https://i.imgur.com/onH1k7Y.gif"
         };
 
         if (infos.iTunesUrl) {
