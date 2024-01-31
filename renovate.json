@@ -18,9 +18,16 @@
     {
       "fileMatch": [".*\\.ts$"],
       "matchStrings": [
-        "import .*\"(?<depName>https:\\/\\/.*)@(?<currentValue>[^\\/]*)\\/.*\";"
+        "import .*\"(?<depName>https://.*)@(?<currentValue>[^/]*).*\";"
       ],
       "datasourceTemplate": "deno"
+    },
+    {
+      "fileMatch": [".*\\.ts$"],
+      "matchStrings": [
+        "import .*\"https://raw\\.githubusercontent\\.com/(?<depName>[^/]+/[^/]+)/(?<currentValue>[^/]+).*\";"
+      ],
+      "datasourceTemplate": "github-tags"
     }
   ]
 }
