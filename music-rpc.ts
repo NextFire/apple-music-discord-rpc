@@ -1,4 +1,4 @@
-#!/usr/bin/env deno run --unstable --allow-env --allow-run --allow-net --allow-read --allow-write --allow-ffi
+#!/usr/bin/env deno run --allow-env --allow-run --allow-net --allow-read --allow-write --unstable-ffi --allow-ffi
 
 import type { Activity } from "https://deno.land/x/discord_rpc@0.3.2/mod.ts";
 import { Client } from "https://deno.land/x/discord_rpc@0.3.2/mod.ts";
