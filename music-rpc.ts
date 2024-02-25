@@ -2,9 +2,9 @@
 
 import type { Activity } from "https://deno.land/x/discord_rpc@0.3.2/mod.ts";
 import { Client } from "https://deno.land/x/discord_rpc@0.3.2/mod.ts";
-import type {} from "https://raw.githubusercontent.com/NextFire/jxa/v0.0.4/run/global.d.ts";
-import { run } from "https://raw.githubusercontent.com/NextFire/jxa/v0.0.4/run/mod.ts";
-import type { iTunes } from "https://raw.githubusercontent.com/NextFire/jxa/v0.0.4/run/types/core.d.ts";
+import type {} from "https://raw.githubusercontent.com/NextFire/jxa/v0.0.5/run/global.d.ts";
+import { run } from "https://raw.githubusercontent.com/NextFire/jxa/v0.0.5/run/mod.ts";
+import type { iTunes } from "https://raw.githubusercontent.com/NextFire/jxa/v0.0.5/run/types/core.d.ts";
 
 // Cache
 
