@@ -57,31 +57,29 @@ const MACOS_VER = await getMacOSVersion();
 const IS_APPLE_MUSIC = MACOS_VER >= 10.15;
 const APP_NAME: iTunesAppName = IS_APPLE_MUSIC ? "Music" : "iTunes";
 const CLIENT_ID = IS_APPLE_MUSIC ? "773825528921849856" : "979297966739300416";
+const DEFAULT_TIMEOUT = 15e3;
+
 start();
 
 async function start() {
   await Cache.loadCache();
-  main();
+  const rpc = new Client({ id: CLIENT_ID });
+  while (true) {
+    try {
+      await main(rpc);
+    } catch (err) {
+      console.error(err);
+      await new Promise((resolve) => setTimeout(resolve, DEFAULT_TIMEOUT));
+    }
+  }
 }
 
-async function main() {
-  try {
-    const rpc = new Client({ id: CLIENT_ID });
-    await rpc.connect();
-    console.log(rpc);
-    const timer = setInterval(async () => {
-      try {
-        await setActivity(rpc);
-      } catch (err) {
-        console.error(err);
-        clearInterval(timer);
-        rpc.close();
-        main();
-      }
-    }, 15e3);
-  } catch (err) {
-    console.error(err);
-    setTimeout(main, 15e3);
+async function main(rpc: Client) {
+  await rpc.connect();
+  console.log(rpc);
+  while (true) {
+    const timeout = await setActivity(rpc);
+    await new Promise((resolve) => setTimeout(resolve, timeout));
   }
 }
 
@@ -230,13 +228,13 @@ async function _getMBArtwork(
 
 // Activity setter
 
-async function setActivity(rpc: Client) {
+async function setActivity(rpc: Client): Promise<number> {
   const open = await isOpen();
   console.log("isOpen:", open);
 
   if (!open) {
     await rpc.clearActivity();
-    return;
+    return DEFAULT_TIMEOUT;
   }
 
   const state = await getState();
@@ -247,9 +245,10 @@ async function setActivity(rpc: Client) {
       const props = await getProps();
       console.log("props:", props);
 
+      let delta;
       let end;
       if (props.duration) {
-        const delta = (props.duration - props.playerPosition) * 1000;
+        delta = (props.duration - props.playerPosition) * 1000;
         end = Math.ceil(Date.now() + delta);
       }
 
@@ -298,14 +297,17 @@ async function setActivity(rpc: Client) {
       }
 
       await rpc.setActivity(activity);
-      break;
+      return Math.min((delta ?? DEFAULT_TIMEOUT) + 1000, DEFAULT_TIMEOUT);
     }
 
     case "paused":
     case "stopped": {
       await rpc.clearActivity();
-      break;
+      return DEFAULT_TIMEOUT;
     }
+
+    default:
+      throw new Error(`Unknown state: ${state}`);
   }
 }
 
