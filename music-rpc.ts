@@ -261,7 +261,7 @@ async function setActivity(rpc: Client) {
       };
 
       if (props.artist.length > 0) {
-        activity.state = formatStr(props.artist);
+        activity.state = formatStr(`by ${props.artist}`);
       }
 
       // album.length == 0 for radios
@@ -283,7 +283,9 @@ async function setActivity(rpc: Client) {
           });
         }
 
-        const query = encodeURIComponent(`artist:${props.artist} track:${props.name}`);
+        const query = encodeURIComponent(
+          `artist:${props.artist} track:${props.name}`
+        );
         const spotifyUrl = `https://open.spotify.com/search/${query}?si`;
         if (spotifyUrl.length <= 512) {
           buttons.push({
