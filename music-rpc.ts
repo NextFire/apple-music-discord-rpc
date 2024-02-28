@@ -282,14 +282,22 @@ async function setActivity(rpc: Client): Promise<number> {
           });
         }
 
-        const query = encodeURIComponent(
-          `artist:${props.artist} track:${props.name}`
-        );
-        const spotifyUrl = `https://open.spotify.com/search/${query}?si`;
-        if (spotifyUrl.length <= 512) {
+        // const query = encodeURIComponent(
+        //   `artist:${props.artist} track:${props.name}`
+        // );
+        // const spotifyUrl = `https://open.spotify.com/search/${query}?si`;
+        // if (spotifyUrl.length <= 512) {
+        //   buttons.push({
+        //     label: "Search on Spotify",
+        //     url: spotifyUrl,
+        //   });
+        // }
+
+        const songwhipUrl = `https://songwhip.com/${infos.iTunesUrl}`;
+        if (songwhipUrl.length <= 512) {
           buttons.push({
-            label: "Search on Spotify",
-            url: spotifyUrl,
+            label: "Search on Songwhip",
+            url: songwhipUrl,
           });
         }
 
