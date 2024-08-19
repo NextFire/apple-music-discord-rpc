@@ -254,6 +254,8 @@ async function setActivity(rpc: Client): Promise<number> {
 
       // EVERYTHING must be less than or equal to 128 chars long
       const activity: Activity = {
+        // @ts-ignore: "listening to" is allowed in recent Discord versions
+        type: 2,
         details: formatStr(props.name),
         timestamps: { end },
         assets: { large_image: "appicon" },
