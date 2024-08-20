@@ -18,7 +18,7 @@ jobs:
       - uses: denoland/setup-deno@v1
       - name: Compile x86_64
         run: |
-          deno compile --allow-env --allow-run --allow-net --allow-read --allow-write --unstable-ffi --allow-ffi --target x86_64-apple-darwin music-rpc.ts
+          deno compile --allow-env --allow-run --allow-net --allow-read --allow-write --unstable-ffi --allow-ffi --unstable-kv --target x86_64-apple-darwin music-rpc.ts
           mv music-rpc music-rpc-${{ steps.version.outputs.commit_sha }}-x86_64-apple-darwin
       - name: Upload x86_64
         uses: actions/upload-artifact@v4
@@ -27,7 +27,7 @@ jobs:
           path: music-rpc-${{ steps.version.outputs.commit_sha }}-x86_64-apple-darwin
       - name: Compile aarch64
         run: |
-          deno compile --allow-env --allow-run --allow-net --allow-read --allow-write --unstable-ffi --allow-ffi --target aarch64-apple-darwin music-rpc.ts
+          deno compile --allow-env --allow-run --allow-net --allow-read --allow-write --unstable-ffi --allow-ffi --unstable-kv --target aarch64-apple-darwin music-rpc.ts
           mv music-rpc music-rpc-${{ steps.version.outputs.commit_sha }}-aarch64-apple-darwin
       - name: Upload aarch64
         uses: actions/upload-artifact@v4
