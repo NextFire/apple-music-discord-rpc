@@ -27,11 +27,18 @@ while (true) {
 }
 
 async function main(rpc: Client) {
-  await rpc.connect();
-  console.log(rpc);
-  while (true) {
-    const timeout = await setActivity(rpc);
-    await sleep(timeout);
+  try {
+    await rpc.connect();
+    console.log("Connected to Discord RPC");
+    while (true) {
+      const timeout = await setActivity(rpc);
+      await sleep(timeout);
+    }
+  } catch (err) {
+    console.error("Error in main loop:", err);
+    await rpc.close(); // Ensure the connection is properly closed
+    console.log("Attempting to reconnect...");
+    await sleep(DEFAULT_TIMEOUT); // wait before attempting to reconnect
   }
 }
 
@@ -100,7 +107,15 @@ async function _getTrackExtras(
     entity: "song",
     term: query,
   });
-  const resp = await fetch(`https://itunes.apple.com/search?${params}`);
+  const resp = await fetchWithTimeout(
+    `https://itunes.apple.com/search?${params}`
+  );
+
+  if (!resp.ok) {
+    console.error("Failed to fetch iTunes API:", resp.statusText);
+    return { artworkUrl: null, iTunesUrl: null };
+  }
+
   const json: iTunesSearchResponse = await resp.json();
 
   let result: iTunesSearchResult | undefined;
@@ -245,7 +260,9 @@ async function setActivity(rpc: Client): Promise<number> {
           });
         }
 
-        const query = encodeURIComponent(`artist:${props.artist} track:${props.name}`);
+        const query = encodeURIComponent(
+          `artist:${props.artist} track:${props.name}`
+        );
         const spotifyUrl = `https://open.spotify.com/search/${query}?si`;
         if (spotifyUrl.length <= 512) {
           buttons.push({
@@ -270,6 +287,22 @@ async function setActivity(rpc: Client): Promise<number> {
     default:
       throw new Error(`Unknown state: ${state}`);
   }
+}
+
+/**
+ * Fetch with a timeout
+ */
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit = {},
+  timeout = 7500
+) {
+  return Promise.race([
+    fetch(url, options),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Request timed out")), timeout)
+    ),
+  ]) as Promise<Response>;
 }
 
 /**
