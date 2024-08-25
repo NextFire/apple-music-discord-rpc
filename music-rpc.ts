@@ -1,76 +1,28 @@
-#!/usr/bin/env deno run --allow-env --allow-run --allow-net --allow-read --allow-write --unstable-ffi --allow-ffi
-
+#!/usr/bin/env deno run --allow-env --allow-run --allow-net --allow-read --allow-write --unstable-ffi --allow-ffi --unstable-kv
 import type { Activity } from "https://deno.land/x/discord_rpc@0.3.2/mod.ts";
 import { Client } from "https://deno.land/x/discord_rpc@0.3.2/mod.ts";
 import type {} from "https://raw.githubusercontent.com/NextFire/jxa/v0.0.5/run/global.d.ts";
 import { run } from "https://raw.githubusercontent.com/NextFire/jxa/v0.0.5/run/mod.ts";
 import type { iTunes } from "https://raw.githubusercontent.com/NextFire/jxa/v0.0.5/run/types/core.d.ts";
 
-// Cache
-
-class Cache {
-  static VERSION = 5;
-  static CACHE_FILE = "cache.json";
-  static #data: Map<string, TrackExtras> = new Map();
-
-  static get(key: string) {
-    return this.#data.get(key);
-  }
-
-  static set(key: string, value: TrackExtras) {
-    this.#data.set(key, value);
-    this.saveCache();
-  }
-
-  static async loadCache() {
-    try {
-      const text = await Deno.readTextFile(this.CACHE_FILE);
-      const data = JSON.parse(text);
-      if (data.version !== this.VERSION) throw new Error("Old cache");
-      this.#data = new Map(data.data);
-    } catch (err) {
-      console.error(
-        err,
-        `No valid ${this.CACHE_FILE} found, generating a new cache...`
-      );
-    }
-  }
-
-  static async saveCache() {
-    try {
-      await Deno.writeTextFile(
-        this.CACHE_FILE,
-        JSON.stringify({
-          version: this.VERSION,
-          data: Array.from(this.#data.entries()),
-        })
-      );
-    } catch (err) {
-      console.error(err);
-    }
-  }
-}
-
-// Main part
-
+//#region entrypoint
 const MACOS_VER = await getMacOSVersion();
 const IS_APPLE_MUSIC = MACOS_VER >= 10.15;
 const APP_NAME: iTunesAppName = IS_APPLE_MUSIC ? "Music" : "iTunes";
 const CLIENT_ID = IS_APPLE_MUSIC ? "773825528921849856" : "979297966739300416";
+
+const KV_VERSION = 0;
+const kv = await Deno.openKv(`cache_v${KV_VERSION}.sqlite3`);
+
 const DEFAULT_TIMEOUT = 15e3;
 
-start();
-
-async function start() {
-  await Cache.loadCache();
-  const rpc = new Client({ id: CLIENT_ID });
-  while (true) {
-    try {
-      await main(rpc);
-    } catch (err) {
-      console.error(err);
-      await new Promise((resolve) => setTimeout(resolve, DEFAULT_TIMEOUT));
-    }
+const rpc = new Client({ id: CLIENT_ID });
+while (true) {
+  try {
+    await main(rpc);
+  } catch (err) {
+    console.error(err);
+    await sleep(DEFAULT_TIMEOUT);
   }
 }
 
@@ -79,12 +31,16 @@ async function main(rpc: Client) {
   console.log(rpc);
   while (true) {
     const timeout = await setActivity(rpc);
-    await new Promise((resolve) => setTimeout(resolve, timeout));
+    await sleep(timeout);
   }
 }
 
-// macOS/JXA functions
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+//#endregion
 
+//#region macOS/JXA functions
 async function getMacOSVersion(): Promise<number> {
   const cmd = new Deno.Command("sw_vers", { args: ["-productVersion"] });
   const output = await cmd.output();
@@ -115,21 +71,22 @@ function getProps(): Promise<iTunesProps> {
     };
   }, APP_NAME);
 }
+//#endregion
 
+//#region iTunes Search API
 async function getTrackExtras(props: iTunesProps): Promise<TrackExtras> {
   const { name, artist, album } = props;
   const cacheIndex = `${name} ${artist} ${album}`;
-  let infos = Cache.get(cacheIndex);
+  const entry = await kv.get<TrackExtras>(["extras", cacheIndex]);
+  let infos = entry.value;
 
   if (!infos) {
     infos = await _getTrackExtras(name, artist, album);
-    Cache.set(cacheIndex, infos);
+    await kv.set(["extras", cacheIndex], infos);
   }
 
   return infos;
 }
-
-// iTunes Search API
 
 async function _getTrackExtras(
   song: string,
@@ -174,20 +131,16 @@ async function _getTrackExtras(
   const iTunesUrl = result?.trackViewUrl ?? null;
   return { artworkUrl, iTunesUrl };
 }
+//#endregion
 
-// MusicBrainz Artwork Getter
-
-const MB_EXCLUDED_NAMES = ["", "Various Artist"];
-const luceneEscape = (term: string) =>
-  term.replace(/([+\-&|!(){}\[\]^"~*?:\\])/g, "\\$1");
-const removeParenthesesContent = (term: string) =>
-  term.replace(/\([^)]*\)/g, "").trim();
-
+//#region MusicBrainz
 async function _getMBArtwork(
   artist: string,
   song: string,
   album: string
 ): Promise<string | undefined> {
+  const MB_EXCLUDED_NAMES = ["", "Various Artist"];
+
   const queryTerms = [];
   if (!MB_EXCLUDED_NAMES.every((elem) => artist.includes(elem))) {
     queryTerms.push(
@@ -226,8 +179,16 @@ async function _getMBArtwork(
   return result;
 }
 
-// Activity setter
+function luceneEscape(term: string): string {
+  return term.replace(/([+\-&|!(){}\[\]^"~*?:\\])/g, "\\$1");
+}
 
+function removeParenthesesContent(term: string): string {
+  return term.replace(/\([^)]*\)/g, "").trim();
+}
+//#endregion
+
+//#region Activity setter
 async function setActivity(rpc: Client): Promise<number> {
   const open = await isOpen();
   console.log("isOpen:", open);
@@ -254,6 +215,8 @@ async function setActivity(rpc: Client): Promise<number> {
 
       // EVERYTHING must be less than or equal to 128 chars long
       const activity: Activity = {
+        // @ts-ignore: "listening to" is allowed in recent Discord versions
+        type: 2,
         details: formatStr(props.name),
         timestamps: { end },
         assets: { large_image: "appicon" },
@@ -327,14 +290,14 @@ async function setActivity(rpc: Client): Promise<number> {
  * @param maxLength
  * @returns Formatted string
  */
-function formatStr(s: string, minLength = 2, maxLength = 128) {
+function formatStr(s: string, minLength = 2, maxLength = 128): string {
   return s.length <= maxLength
     ? s.padEnd(minLength)
     : `${s.slice(0, maxLength - 3)}...`;
 }
+//#endregion
 
-// TypeScript
-
+//#region TypeScript
 type iTunesAppName = "iTunes" | "Music";
 
 interface iTunesProps {
@@ -371,3 +334,4 @@ interface MBReleaseLookupResponse {
 interface MBRelease {
   id: string;
 }
+//#endregion
