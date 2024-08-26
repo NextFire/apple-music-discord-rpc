@@ -108,12 +108,11 @@ async function _getTrackExtras(
     entity: "song",
     term: query,
   });
-  const resp = await fetch(
-    `https://itunes.apple.com/search?${params}`
-  );
+  const url = `https://itunes.apple.com/search?${params}`;
+  const resp = await fetch(url);
 
   if (!resp.ok) {
-    console.error("iTunes API error:", resp.statusText);
+    console.error("iTunes API error:", resp.statusText, url);
 
     return {
       artworkUrl: await _getMBArtwork(artist, song, album) ?? null,
