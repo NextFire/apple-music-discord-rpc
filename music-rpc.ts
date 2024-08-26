@@ -37,6 +37,7 @@ async function main(rpc: Client) {
   } catch (err) {
     console.error("Error in main loop:", err);
     await rpc.close(); // Ensure the connection is properly closed
+    
     console.log("Attempting to reconnect...");
     await sleep(DEFAULT_TIMEOUT); // wait before attempting to reconnect
   }
@@ -107,13 +108,17 @@ async function _getTrackExtras(
     entity: "song",
     term: query,
   });
-  const resp = await fetchWithTimeout(
+  const resp = await fetch(
     `https://itunes.apple.com/search?${params}`
   );
 
   if (!resp.ok) {
-    console.error("Failed to fetch iTunes API:", resp.statusText);
-    return { artworkUrl: null, iTunesUrl: null };
+    console.error("iTunes API error:", resp.statusText);
+
+    return {
+      artworkUrl: await _getMBArtwork(artist, song, album) ?? null,
+      iTunesUrl: null,
+    };
   }
 
   const json: iTunesSearchResponse = await resp.json();
@@ -144,6 +149,7 @@ async function _getTrackExtras(
     result?.artworkUrl100 ?? (await _getMBArtwork(artist, song, album)) ?? null;
 
   const iTunesUrl = result?.trackViewUrl ?? null;
+
   return { artworkUrl, iTunesUrl };
 }
 //#endregion
@@ -287,22 +293,6 @@ async function setActivity(rpc: Client): Promise<number> {
     default:
       throw new Error(`Unknown state: ${state}`);
   }
-}
-
-/**
- * Fetch with a timeout
- */
-async function fetchWithTimeout(
-  url: string,
-  options: RequestInit = {},
-  timeout = 7500
-) {
-  return Promise.race([
-    fetch(url, options),
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("Request timed out")), timeout)
-    ),
-  ]) as Promise<Response>;
 }
 
 /**
