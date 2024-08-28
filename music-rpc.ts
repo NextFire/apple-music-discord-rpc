@@ -27,11 +27,19 @@ while (true) {
 }
 
 async function main(rpc: Client) {
-  await rpc.connect();
-  console.log(rpc);
-  while (true) {
-    const timeout = await setActivity(rpc);
-    await sleep(timeout);
+  try {
+    await rpc.connect();
+    console.log("Connected to Discord RPC");
+    while (true) {
+      const timeout = await setActivity(rpc);
+      await sleep(timeout);
+    }
+  } catch (err) {
+    console.error("Error in main loop:", err);
+    await rpc.close(); // Ensure the connection is properly closed
+    
+    console.log("Attempting to reconnect...");
+    await sleep(DEFAULT_TIMEOUT); // wait before attempting to reconnect
   }
 }
 
@@ -100,7 +108,18 @@ async function _getTrackExtras(
     entity: "song",
     term: query,
   });
-  const resp = await fetch(`https://itunes.apple.com/search?${params}`);
+  const url = `https://itunes.apple.com/search?${params}`;
+  const resp = await fetch(url);
+
+  if (!resp.ok) {
+    console.error("iTunes API error:", resp.statusText, url);
+
+    return {
+      artworkUrl: await _getMBArtwork(artist, song, album) ?? null,
+      iTunesUrl: null,
+    };
+  }
+
   const json: iTunesSearchResponse = await resp.json();
 
   let result: iTunesSearchResult | undefined;
@@ -129,6 +148,7 @@ async function _getTrackExtras(
     result?.artworkUrl100 ?? (await _getMBArtwork(artist, song, album)) ?? null;
 
   const iTunesUrl = result?.trackViewUrl ?? null;
+
   return { artworkUrl, iTunesUrl };
 }
 //#endregion
