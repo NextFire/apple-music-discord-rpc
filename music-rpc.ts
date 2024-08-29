@@ -115,7 +115,7 @@ async function _getTrackExtras(
     console.error("iTunes API error:", resp.statusText, url);
 
     return {
-      artworkUrl: await _getMBArtwork(artist, song, album) ?? null,
+      artworkUrl: (await _getMBArtwork(artist, song, album)) ?? null,
       iTunesUrl: null,
     };
   }
@@ -248,8 +248,6 @@ async function setActivity(rpc: Client): Promise<number> {
 
       // album.length == 0 for radios
       if (props.album.length > 0) {
-        const buttons = [];
-
         const infos = await getTrackExtras(props);
         console.log("infos:", infos);
 
@@ -257,26 +255,6 @@ async function setActivity(rpc: Client): Promise<number> {
           large_image: infos.artworkUrl ?? "appicon",
           large_text: formatStr(props.album),
         };
-
-        if (infos.iTunesUrl) {
-          buttons.push({
-            label: "Play on Apple Music",
-            url: infos.iTunesUrl,
-          });
-        }
-
-        const query = encodeURIComponent(
-          `artist:${props.artist} track:${props.name}`
-        );
-        const spotifyUrl = `https://open.spotify.com/search/${query}?si`;
-        if (spotifyUrl.length <= 512) {
-          buttons.push({
-            label: "Search on Spotify",
-            url: spotifyUrl,
-          });
-        }
-
-        if (buttons.length > 0) activity.buttons = buttons;
       }
 
       await rpc.setActivity(activity);
