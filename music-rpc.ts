@@ -108,7 +108,7 @@ async function _getTrackExtras(
     entity: "song",
     term: query,
   });
-  const url = `https://itunes.apple.com/search?${params}`;
+  const url = `https://itunes.apple.com/jp/search?${params}`;
   const resp = await fetch(url);
 
   if (!resp.ok) {
