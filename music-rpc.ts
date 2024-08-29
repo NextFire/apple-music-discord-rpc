@@ -100,7 +100,7 @@ async function _getTrackExtras(
     entity: "song",
     term: query,
   });
-  const resp = await fetch(`https://itunes.apple.com/jp/search?${params}`);
+  const resp = await fetch(`https://itunes.apple.com/search?${params}`);
   const json: iTunesSearchResponse = await resp.json();
 
   let result: iTunesSearchResult | undefined;
