@@ -36,7 +36,7 @@ async function main(rpc: Client) {
     }
   } catch (err) {
     console.error("Error in main loop:", err);
-    await rpc.close(); // Ensure the connection is properly closed
+    rpc.close(); // Ensure the connection is properly closed
 
     console.log("Attempting to reconnect...");
     await sleep(DEFAULT_TIMEOUT); // wait before attempting to reconnect
@@ -113,7 +113,7 @@ async function _getTrackExtras(
 
   if (!resp.ok) {
     console.error("iTunes API error:", resp.statusText, url);
-
+    await resp.body?.cancel();
     return {
       artworkUrl: (await _getMBArtwork(artist, song, album)) ?? null,
       iTunesUrl: null,
@@ -188,8 +188,10 @@ async function _getMBArtwork(
 
   for (const release of json.releases) {
     resp = await fetch(
-      `https://coverartarchive.org/release/${release.id}/front`
+      `https://coverartarchive.org/release/${release.id}/front`,
+      { method: "HEAD" }
     );
+    await resp.body?.cancel();
     if (resp.ok) {
       result = resp.url;
       break;
