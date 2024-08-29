@@ -115,13 +115,20 @@ async function _getTrackExtras(
         r.collectionName.toLowerCase().includes(album.toLowerCase()) &&
         r.trackName.toLowerCase().includes(song.toLowerCase())
     );
-  } else if (album.match(/\(.*\)$/)) {
-    // If there are no results, try to remove the part
-    // of the album name in parentheses (e.g. "Album (Deluxe Edition)")
+  // } else if (album.match(/\(.*\)$/)) {
+  //   // If there are no results, try to remove the part
+  //   // of the album name in parentheses (e.g. "Album (Deluxe Edition)")
+  //   return await _getTrackExtras(
+  //     song,
+  //     artist,
+  //     album.replace(/\(.*\)$/, "").trim()
+  //   );
+  } else {
+    // If there are no results, try to remove album in query
     return await _getTrackExtras(
       song,
       artist,
-      album.replace(/\(.*\)$/, "").trim()
+      ""
     );
   }
 
