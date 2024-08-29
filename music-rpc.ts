@@ -37,7 +37,7 @@ async function main(rpc: Client) {
   } catch (err) {
     console.error("Error in main loop:", err);
     await rpc.close(); // Ensure the connection is properly closed
-    
+
     console.log("Attempting to reconnect...");
     await sleep(DEFAULT_TIMEOUT); // wait before attempting to reconnect
   }
@@ -243,7 +243,7 @@ async function setActivity(rpc: Client): Promise<number> {
       };
 
       if (props.artist.length > 0) {
-        activity.state = formatStr(`by ${props.artist}`);
+        activity.state = formatStr(props.artist);
       }
 
       // album.length == 0 for radios
