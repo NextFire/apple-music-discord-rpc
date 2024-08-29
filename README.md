@@ -6,18 +6,18 @@ Works with local tracks and Apple Music streaming service.
 
 ## Features
 
-- Can be launched in background at login.
-- No status bar icon clutter.
-- Presence is only enabled when actually playing something.
-- Apple Music matching ([#5](https://github.com/NextFire/apple-music-discord-rpc/pull/5)).
-- Spotify search button ([#59](https://github.com/NextFire/apple-music-discord-rpc/pull/59)).
+- Can start in background at login
+- No status bar icon clutter
+- Small and (quite) easy to understand script
+- Presence is only enabled when actually playing something
+- Apple Music matching ([#5](https://github.com/NextFire/apple-music-discord-rpc/pull/5))
 - MusicBrainz artwork fallback ([#66](https://github.com/NextFire/apple-music-discord-rpc/pull/66))
 
-<img width="364" alt="Capture d’écran 2023-09-12 à 17 33 34" src="https://github.com/NextFire/apple-music-discord-rpc/assets/20094890/6b851575-176b-408d-83a1-c1f5c5106d16">
+<img width="350" alt="Screenshot 2024-08-29 at 20 05 10" src="https://github.com/user-attachments/assets/dbfd53ab-a958-431a-b2bc-34ea3e835d25">
 
 ## Getting Started
 
-Choose one of the two methods below to install the script and enable the macOS launch agent that starts it on login.
+Follow one of the two sections below to download the script and enable the macOS launch agent that will start it at login.
 
 ### Homebrew (Recommended)
 
