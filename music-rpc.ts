@@ -28,7 +28,7 @@ class AppleMusicDiscordRPC {
         console.error(err);
       }
       console.log("Reconnecting in %dms", this.defaultTimeout);
-      await AppleMusicDiscordRPC.sleep(this.defaultTimeout);
+      await sleep(this.defaultTimeout);
     }
   }
 
@@ -39,7 +39,7 @@ class AppleMusicDiscordRPC {
       while (true) {
         const timeout = await this.setActivity();
         console.log("Next setActivity in %dms", timeout);
-        await AppleMusicDiscordRPC.sleep(timeout);
+        await sleep(timeout);
       }
     } finally {
       // Ensure the connection is properly closed
@@ -145,15 +145,15 @@ class AppleMusicDiscordRPC {
     return version;
   }
 
-  static sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  }
-
   static truncateString(value: string, maxLength = 128): string {
     return value.length <= maxLength
       ? value
       : `${value.slice(0, maxLength - 3)}...`;
   }
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 const client = await AppleMusicDiscordRPC.create();
@@ -216,11 +216,10 @@ async function fetchTrackExtras(props: iTunesProps): Promise<TrackExtras> {
   };
 }
 
-async function iTunesSearch({
-  name,
-  artist,
-  album,
-}: iTunesProps): Promise<iTunesSearchResponse | undefined> {
+async function iTunesSearch(
+  { name, artist, album }: iTunesProps,
+  retryCount: number = 3
+): Promise<iTunesSearchResponse | undefined> {
   // Asterisks tend to result in no songs found, and songs are usually able to be found without it
   const query = `${name} ${artist} ${album}`.replace("*", "");
   const params = new URLSearchParams({
@@ -229,15 +228,23 @@ async function iTunesSearch({
     term: query,
   });
   const url = `https://itunes.apple.com/search?${params}`;
-  const resp = await fetch(url);
 
-  if (!resp.ok) {
-    console.error("iTunes API error:", resp.statusText, url);
-    resp.body?.cancel();
-    return;
+  for (let i = 0; i < retryCount; i++) {
+    const resp = await fetch(url);
+    if (!resp.ok) {
+      console.error(
+        "Failed to fetch from iTunes API: %s %s (Attempt %d/%d)",
+        resp.statusText,
+        url,
+        i + 1,
+        retryCount
+      );
+      resp.body?.cancel();
+      await sleep(200);
+      continue;
+    }
+    return (await resp.json()) as iTunesSearchResponse;
   }
-
-  return (await resp.json()) as iTunesSearchResponse;
 }
 
 async function musicBrainzArtwork({
