@@ -5,104 +5,224 @@ import type {} from "https://raw.githubusercontent.com/NextFire/jxa/v0.0.5/run/g
 import { run } from "https://raw.githubusercontent.com/NextFire/jxa/v0.0.5/run/mod.ts";
 import type { iTunes } from "https://raw.githubusercontent.com/NextFire/jxa/v0.0.5/run/types/core.d.ts";
 
-//#region entrypoint
-const MACOS_VER = await getMacOSVersion();
-const IS_APPLE_MUSIC = MACOS_VER >= 10.15;
-const APP_NAME: iTunesAppName = IS_APPLE_MUSIC ? "Music" : "iTunes";
-const CLIENT_ID = IS_APPLE_MUSIC ? "773825528921849856" : "979297966739300416";
+//#region RPC
+class AppleMusicDiscordRPC {
+  static readonly CLIENT_IDS: Record<iTunesAppName, string> = {
+    iTunes: "979297966739300416",
+    Music: "773825528921849856",
+  };
+  static readonly KV_VERSION = 0;
 
-const KV_VERSION = 0;
-const kv = await Deno.openKv(`cache_v${KV_VERSION}.sqlite3`);
+  private constructor(
+    public readonly appName: iTunesAppName,
+    public readonly rpc: Client,
+    public readonly kv: Deno.Kv,
+    public readonly defaultTimeout: number
+  ) {}
 
-const DEFAULT_TIMEOUT = 15e3;
-
-const rpc = new Client({ id: CLIENT_ID });
-while (true) {
-  try {
-    await main(rpc);
-  } catch (err) {
-    console.error(err);
-    await sleep(DEFAULT_TIMEOUT);
-  }
-}
-
-async function main(rpc: Client) {
-  try {
-    await rpc.connect();
-    console.log("Connected to Discord RPC");
+  async run(): Promise<void> {
     while (true) {
-      const timeout = await setActivity(rpc);
-      await sleep(timeout);
+      try {
+        await this.setActivityLoop();
+      } catch (err) {
+        console.error(err);
+      }
+      console.log("Reconnecting in %dms", this.defaultTimeout);
+      await AppleMusicDiscordRPC.sleep(this.defaultTimeout);
     }
-  } catch (err) {
-    console.error("Error in main loop:", err);
-    rpc.close(); // Ensure the connection is properly closed
+  }
 
-    console.log("Attempting to reconnect...");
-    await sleep(DEFAULT_TIMEOUT); // wait before attempting to reconnect
+  async setActivityLoop(): Promise<void> {
+    try {
+      await this.rpc.connect();
+      console.log("Connected to Discord RPC");
+      while (true) {
+        const timeout = await this.setActivity();
+        console.log("Next setActivity in %dms", timeout);
+        await AppleMusicDiscordRPC.sleep(timeout);
+      }
+    } finally {
+      // Ensure the connection is properly closed
+      if (this.rpc.ipc) {
+        console.log("Closing connection to Discord RPC");
+        this.rpc.close();
+        this.rpc.ipc = undefined;
+      }
+    }
+  }
+
+  async setActivity(): Promise<number> {
+    const open = await isMusicOpen(this.appName);
+    console.log("open:", open);
+
+    if (!open) {
+      await this.rpc.clearActivity();
+      return this.defaultTimeout;
+    }
+
+    const state = await getMusicState(this.appName);
+    console.log("state:", state);
+
+    switch (state) {
+      case "playing": {
+        const props = await getMusicProps(this.appName);
+        console.log("props:", props);
+
+        let delta, end;
+        if (props.duration) {
+          delta = (props.duration - props.playerPosition) * 1000;
+          end = Math.ceil(Date.now() + delta);
+        }
+
+        // EVERYTHING must be less than or equal to 128 chars long
+        const activity: Activity = {
+          // @ts-ignore: "listening to" is allowed in recent Discord versions
+          type: 2,
+          details: AppleMusicDiscordRPC.truncateString(props.name),
+          timestamps: { end },
+          assets: { large_image: "appicon" },
+        };
+
+        if (props.artist) {
+          activity.state = AppleMusicDiscordRPC.truncateString(props.artist);
+        }
+
+        if (props.album) {
+          const infos = await this.cachedTrackExtras(props);
+          console.log("infos:", infos);
+
+          activity.assets = {
+            large_image: infos.artworkUrl ?? "appicon",
+            large_text: AppleMusicDiscordRPC.truncateString(props.album),
+          };
+        }
+
+        await this.rpc.setActivity(activity);
+        return Math.min(
+          (delta ?? this.defaultTimeout) + 1000,
+          this.defaultTimeout
+        );
+      }
+
+      case "paused":
+      case "stopped": {
+        await this.rpc.clearActivity();
+        return this.defaultTimeout;
+      }
+
+      default:
+        throw new Error(`Unknown state: ${state}`);
+    }
+  }
+
+  async cachedTrackExtras(props: iTunesProps): Promise<TrackExtras> {
+    const { name, artist, album } = props;
+    const cacheIndex = `${name} ${artist} ${album}`;
+    const entry = await this.kv.get<TrackExtras>(["extras", cacheIndex]);
+    let infos = entry.value;
+
+    if (!infos) {
+      infos = await fetchTrackExtras(props);
+      await this.kv.set(["extras", cacheIndex], infos);
+    }
+
+    return infos;
+  }
+
+  static async create(defaultTimeout = 15e3): Promise<AppleMusicDiscordRPC> {
+    const macOSVersion = await this.getMacOSVersion();
+    const appName: iTunesAppName = macOSVersion >= 10.15 ? "Music" : "iTunes";
+    const rpc = new Client({ id: this.CLIENT_IDS[appName] });
+    const kv = await Deno.openKv(`cache_v${this.KV_VERSION}.sqlite3`);
+    return new this(appName, rpc, kv, defaultTimeout);
+  }
+
+  static async getMacOSVersion(): Promise<number> {
+    const cmd = new Deno.Command("sw_vers", { args: ["-productVersion"] });
+    const output = await cmd.output();
+    const decoded = new TextDecoder().decode(output.stdout);
+    const version = parseFloat(decoded.match(/\d+\.\d+/)![0]);
+    return version;
+  }
+
+  static sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  static truncateString(value: string, maxLength = 128): string {
+    return value.length <= maxLength
+      ? value
+      : `${value.slice(0, maxLength - 3)}...`;
   }
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+const client = await AppleMusicDiscordRPC.create();
+await client.run();
 //#endregion
 
-//#region macOS/JXA functions
-async function getMacOSVersion(): Promise<number> {
-  const cmd = new Deno.Command("sw_vers", { args: ["-productVersion"] });
-  const output = await cmd.output();
-  const decoded = new TextDecoder().decode(output.stdout);
-  const version = parseFloat(decoded.match(/\d+\.\d+/)![0]);
-  return version;
-}
-
-function isOpen(): Promise<boolean> {
+//#region JXA
+function isMusicOpen(appName: iTunesAppName): Promise<boolean> {
   return run((appName: iTunesAppName) => {
     return Application("System Events").processes[appName].exists();
-  }, APP_NAME);
+  }, appName);
 }
 
-function getState(): Promise<string> {
+function getMusicState(appName: iTunesAppName): Promise<string> {
   return run((appName: iTunesAppName) => {
     const music = Application(appName) as unknown as iTunes;
     return music.playerState();
-  }, APP_NAME);
+  }, appName);
 }
 
-function getProps(): Promise<iTunesProps> {
+function getMusicProps(appName: iTunesAppName): Promise<iTunesProps> {
   return run((appName: iTunesAppName) => {
     const music = Application(appName) as unknown as iTunes;
     return {
       ...music.currentTrack().properties(),
       playerPosition: music.playerPosition(),
     };
-  }, APP_NAME);
+  }, appName);
 }
 //#endregion
 
-//#region iTunes Search API
-async function getTrackExtras(props: iTunesProps): Promise<TrackExtras> {
-  const { name, artist, album } = props;
-  const cacheIndex = `${name} ${artist} ${album}`;
-  const entry = await kv.get<TrackExtras>(["extras", cacheIndex]);
-  let infos = entry.value;
+//#region Extras
+async function fetchTrackExtras(props: iTunesProps): Promise<TrackExtras> {
+  const json = await iTunesSearch(props);
 
-  if (!infos) {
-    infos = await _getTrackExtras(name, artist, album);
-    await kv.set(["extras", cacheIndex], infos);
+  let result: iTunesSearchResult | undefined;
+  if (json && json.resultCount === 1) {
+    result = json.results[0];
+  } else if (json && json.resultCount > 1) {
+    // If there are multiple results, find the right album
+    // Use includes as imported songs may format it differently
+    // Also put them all to lowercase in case of differing capitalisation
+    result = json.results.find(
+      (r) =>
+        r.collectionName.toLowerCase().includes(props.album.toLowerCase()) &&
+        r.trackName.toLowerCase().includes(props.name.toLowerCase())
+    );
+  } else if (props.album.match(/\(.*\)$/)) {
+    // If there are no results, try to remove the part
+    // of the album name in parentheses (e.g. "Album (Deluxe Edition)")
+    return await fetchTrackExtras({
+      ...props,
+      album: props.album.replace(/\(.*\)$/, "").trim(),
+    });
   }
 
-  return infos;
+  return {
+    artworkUrl: result?.artworkUrl100 ?? (await musicBrainzArtwork(props)),
+    iTunesUrl: result?.trackViewUrl,
+  };
 }
 
-async function _getTrackExtras(
-  song: string,
-  artist: string,
-  album: string
-): Promise<TrackExtras> {
+async function iTunesSearch({
+  name,
+  artist,
+  album,
+}: iTunesProps): Promise<iTunesSearchResponse | undefined> {
   // Asterisks tend to result in no songs found, and songs are usually able to be found without it
-  const query = `${song} ${artist} ${album}`.replace("*", "");
+  const query = `${name} ${artist} ${album}`.replace("*", "");
   const params = new URLSearchParams({
     media: "music",
     entity: "song",
@@ -113,52 +233,18 @@ async function _getTrackExtras(
 
   if (!resp.ok) {
     console.error("iTunes API error:", resp.statusText, url);
-    await resp.body?.cancel();
-    return {
-      artworkUrl: (await _getMBArtwork(artist, song, album)) ?? null,
-      iTunesUrl: null,
-    };
+    resp.body?.cancel();
+    return;
   }
 
-  const json: iTunesSearchResponse = await resp.json();
-
-  let result: iTunesSearchResult | undefined;
-  if (json.resultCount === 1) {
-    result = json.results[0];
-  } else if (json.resultCount > 1) {
-    // If there are multiple results, find the right album
-    // Use includes as imported songs may format it differently
-    // Also put them all to lowercase in case of differing capitalisation
-    result = json.results.find(
-      (r) =>
-        r.collectionName.toLowerCase().includes(album.toLowerCase()) &&
-        r.trackName.toLowerCase().includes(song.toLowerCase())
-    );
-  } else if (album.match(/\(.*\)$/)) {
-    // If there are no results, try to remove the part
-    // of the album name in parentheses (e.g. "Album (Deluxe Edition)")
-    return await _getTrackExtras(
-      song,
-      artist,
-      album.replace(/\(.*\)$/, "").trim()
-    );
-  }
-
-  const artworkUrl =
-    result?.artworkUrl100 ?? (await _getMBArtwork(artist, song, album)) ?? null;
-
-  const iTunesUrl = result?.trackViewUrl ?? null;
-
-  return { artworkUrl, iTunesUrl };
+  return (await resp.json()) as iTunesSearchResponse;
 }
-//#endregion
 
-//#region MusicBrainz
-async function _getMBArtwork(
-  artist: string,
-  song: string,
-  album: string
-): Promise<string | undefined> {
+async function musicBrainzArtwork({
+  name,
+  artist,
+  album,
+}: iTunesProps): Promise<string | undefined> {
   const MB_EXCLUDED_NAMES = ["", "Various Artist"];
 
   const queryTerms = [];
@@ -170,7 +256,7 @@ async function _getMBArtwork(
   if (!MB_EXCLUDED_NAMES.every((elem) => album.includes(elem))) {
     queryTerms.push(`release:"${luceneEscape(album)}"`);
   } else {
-    queryTerms.push(`recording:"${luceneEscape(song)}"`);
+    queryTerms.push(`recording:"${luceneEscape(name)}"`);
   }
   const query = queryTerms.join(" ");
 
@@ -180,25 +266,19 @@ async function _getMBArtwork(
     query,
   });
 
-  let resp: Response;
-  let result: string | undefined;
-
-  resp = await fetch(`https://musicbrainz.org/ws/2/release?${params}`);
-  const json: MBReleaseLookupResponse = await resp.json();
+  const resp = await fetch(`https://musicbrainz.org/ws/2/release?${params}`);
+  const json = (await resp.json()) as MBReleaseLookupResponse;
 
   for (const release of json.releases) {
-    resp = await fetch(
+    const resp = await fetch(
       `https://coverartarchive.org/release/${release.id}/front`,
       { method: "HEAD" }
     );
     await resp.body?.cancel();
     if (resp.ok) {
-      result = resp.url;
-      break;
+      return resp.url;
     }
   }
-
-  return result;
 }
 
 function luceneEscape(term: string): string {
@@ -207,85 +287,6 @@ function luceneEscape(term: string): string {
 
 function removeParenthesesContent(term: string): string {
   return term.replace(/\([^)]*\)/g, "").trim();
-}
-//#endregion
-
-//#region Activity setter
-async function setActivity(rpc: Client): Promise<number> {
-  const open = await isOpen();
-  console.log("isOpen:", open);
-
-  if (!open) {
-    await rpc.clearActivity();
-    return DEFAULT_TIMEOUT;
-  }
-
-  const state = await getState();
-  console.log("state:", state);
-
-  switch (state) {
-    case "playing": {
-      const props = await getProps();
-      console.log("props:", props);
-
-      let delta;
-      let end;
-      if (props.duration) {
-        delta = (props.duration - props.playerPosition) * 1000;
-        end = Math.ceil(Date.now() + delta);
-      }
-
-      // EVERYTHING must be less than or equal to 128 chars long
-      const activity: Activity = {
-        // @ts-ignore: "listening to" is allowed in recent Discord versions
-        type: 2,
-        details: formatStr(props.name),
-        timestamps: { end },
-        assets: { large_image: "appicon" },
-      };
-
-      if (props.artist.length > 0) {
-        activity.state = formatStr(props.artist);
-      }
-
-      // album.length == 0 for radios
-      if (props.album.length > 0) {
-        const infos = await getTrackExtras(props);
-        console.log("infos:", infos);
-
-        activity.assets = {
-          large_image: infos.artworkUrl ?? "appicon",
-          large_text: formatStr(props.album),
-        };
-      }
-
-      await rpc.setActivity(activity);
-      return Math.min((delta ?? DEFAULT_TIMEOUT) + 1000, DEFAULT_TIMEOUT);
-    }
-
-    case "paused":
-    case "stopped": {
-      await rpc.clearActivity();
-      return DEFAULT_TIMEOUT;
-    }
-
-    default:
-      throw new Error(`Unknown state: ${state}`);
-  }
-}
-
-/**
- * Format string to specified char limits.
- * Will output the string with 3 chars at the end replaced by '...'.
- * @param s string
- * @param minLength
- * @param maxLength
- * @returns Formatted string
- */
-function formatStr(s: string, minLength = 2, maxLength = 128): string {
-  return s.length <= maxLength
-    ? s.padEnd(minLength)
-    : `${s.slice(0, maxLength - 3)}...`;
 }
 //#endregion
 
@@ -303,8 +304,8 @@ interface iTunesProps {
 }
 
 interface TrackExtras {
-  artworkUrl: string | null;
-  iTunesUrl: string | null;
+  artworkUrl?: string;
+  iTunesUrl?: string;
 }
 
 interface iTunesSearchResponse {
