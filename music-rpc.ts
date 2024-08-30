@@ -82,9 +82,7 @@ function getProps(): Promise<iTunesProps> {
 //#endregion
 
 //#region iTunes Search API
-async function getTrackExtras(
-  props: iTunesProps
-): Promise<TrackExtras | undefined | null> {
+async function getTrackExtras(props: iTunesProps): Promise<TrackExtras> {
   const { name, artist, album } = props;
   const cacheIndex = `${name} ${artist} ${album}`;
   const entry = await kv.get<TrackExtras>(["extras", cacheIndex]);
@@ -103,7 +101,7 @@ async function _getTrackExtras(
   artist: string,
   album: string,
   retryCount: number = 3
-): Promise<TrackExtras | undefined | null> {
+): Promise<TrackExtras | undefined> {
   // Asterisks tend to result in no songs found, and songs are usually able to be found without it
   const query = `${song} ${artist} ${album}`.replace("*", "");
   const params = new URLSearchParams({
