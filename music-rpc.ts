@@ -37,7 +37,7 @@ async function main(rpc: Client) {
   } catch (err) {
     console.error("Error in main loop:", err);
     await rpc.close(); // Ensure the connection is properly closed
-    
+
     console.log("Attempting to reconnect...");
     await sleep(DEFAULT_TIMEOUT); // wait before attempting to reconnect
   }
@@ -99,8 +99,9 @@ async function getTrackExtras(props: iTunesProps): Promise<TrackExtras> {
 async function _getTrackExtras(
   song: string,
   artist: string,
-  album: string
-): Promise<TrackExtras> {
+  album: string,
+  retryCount: number = 3
+): Promise<TrackExtras | undefined> {
   // Asterisks tend to result in no songs found, and songs are usually able to be found without it
   const query = `${song} ${artist} ${album}`.replace("*", "");
   const params = new URLSearchParams({
@@ -109,47 +110,66 @@ async function _getTrackExtras(
     term: query,
   });
   const url = `https://itunes.apple.com/search?${params}`;
-  const resp = await fetch(url);
 
-  if (!resp.ok) {
-    console.error("iTunes API error:", resp.statusText, url);
+  let attempts = 0;
 
-    return {
-      artworkUrl: await _getMBArtwork(artist, song, album) ?? null,
-      iTunesUrl: null,
-    };
+  while (attempts < retryCount) {
+    try {
+      const resp = await fetch(url);
+
+      if (!resp.ok) {
+        console.error(
+          `Failed to fetch from iTunes API: ${resp.statusText}`,
+          url,
+          `Attempt ${attempts + 1}/${retryCount}`
+        );
+      }
+
+      const json: iTunesSearchResponse = await resp.json();
+
+      let result: iTunesSearchResult | undefined;
+      if (json.resultCount === 1) {
+        result = json.results[0];
+      } else if (json.resultCount > 1) {
+        // If there are multiple results, find the right album
+        // Use includes as imported songs may format it differently
+        // Also put them all to lowercase in case of differing capitalization
+        result = json.results.find(
+          (r) =>
+            r.collectionName.toLowerCase().includes(album.toLowerCase()) &&
+            r.trackName.toLowerCase().includes(song.toLowerCase())
+        );
+      } else if (album.match(/\(.*\)$/)) {
+        // If there are no results, try to remove the part
+        // of the album name in parentheses (e.g. "Album (Deluxe Edition)")
+        return await _getTrackExtras(
+          song,
+          artist,
+          album.replace(/\(.*\)$/, "").trim(),
+          retryCount
+        );
+      }
+
+      const artworkUrl =
+        result?.artworkUrl100 ??
+        (await _getMBArtwork(artist, song, album)) ??
+        null;
+
+      const iTunesUrl = result?.trackViewUrl ?? null;
+
+      return { artworkUrl, iTunesUrl };
+    } catch (error) {
+      console.error(error);
+      attempts += 1;
+      if (attempts >= retryCount) {
+        // Fall back after exhausting retries
+        return {
+          artworkUrl: (await _getMBArtwork(artist, song, album)) ?? null,
+          iTunesUrl: null,
+        };
+      }
+    }
   }
-
-  const json: iTunesSearchResponse = await resp.json();
-
-  let result: iTunesSearchResult | undefined;
-  if (json.resultCount === 1) {
-    result = json.results[0];
-  } else if (json.resultCount > 1) {
-    // If there are multiple results, find the right album
-    // Use includes as imported songs may format it differently
-    // Also put them all to lowercase in case of differing capitalisation
-    result = json.results.find(
-      (r) =>
-        r.collectionName.toLowerCase().includes(album.toLowerCase()) &&
-        r.trackName.toLowerCase().includes(song.toLowerCase())
-    );
-  } else if (album.match(/\(.*\)$/)) {
-    // If there are no results, try to remove the part
-    // of the album name in parentheses (e.g. "Album (Deluxe Edition)")
-    return await _getTrackExtras(
-      song,
-      artist,
-      album.replace(/\(.*\)$/, "").trim()
-    );
-  }
-
-  const artworkUrl =
-    result?.artworkUrl100 ?? (await _getMBArtwork(artist, song, album)) ?? null;
-
-  const iTunesUrl = result?.trackViewUrl ?? null;
-
-  return { artworkUrl, iTunesUrl };
 }
 //#endregion
 
