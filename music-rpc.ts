@@ -68,10 +68,11 @@ class AppleMusicDiscordRPC {
         const props = await getMusicProps(this.appName);
         console.log("props:", props);
 
-        let delta, end;
+        let delta, start, end;
         if (props.duration) {
           delta = (props.duration - props.playerPosition) * 1000;
           end = Math.ceil(Date.now() + delta);
+          start = Math.ceil(Date.now() - props.playerPosition * 1000);
         }
 
         // EVERYTHING must be less than or equal to 128 chars long
@@ -79,7 +80,7 @@ class AppleMusicDiscordRPC {
           // @ts-ignore: "listening to" is allowed in recent Discord versions
           type: 2,
           details: AppleMusicDiscordRPC.truncateString(props.name),
-          timestamps: { end },
+          timestamps: { start, end },
           assets: { large_image: "appicon" },
         };
 
