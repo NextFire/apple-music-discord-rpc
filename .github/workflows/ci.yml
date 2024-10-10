@@ -11,13 +11,13 @@ jobs:
   compile:
     runs-on: ubuntu-latest
     env:
-      flags: --allow-env --allow-run --allow-net --allow-read --allow-write --unstable-ffi --allow-ffi --unstable-kv
+      flags: --allow-env --allow-run --allow-net --allow-read --allow-write --allow-ffi --allow-import --unstable-kv
     steps:
       - uses: actions/checkout@v4
       - name: Get commit SHA
         id: version
         run: echo commit_sha=$(git log -n1 --format='%h') >> "$GITHUB_OUTPUT"
-      - uses: denoland/setup-deno@v1
+      - uses: denoland/setup-deno@v2
       - name: Compile x86_64
         run: |
           deno compile ${{ env.flags }} --target x86_64-apple-darwin music-rpc.ts
