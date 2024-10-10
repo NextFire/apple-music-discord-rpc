@@ -1,6 +1,6 @@
 # apple-music-discord-rpc
 
-**[Deno](https://deno.land) + JavaScript for Automation (JXA) Discord Rich Presence Client for the macOS Apple Music app (Catalina and later) and legacy iTunes.**
+**[Deno](https://deno.com) + JavaScript for Automation (JXA) Discord Rich Presence Client for the macOS Apple Music app (Catalina and later) and legacy iTunes.**
 
 Works with local tracks and Apple Music streaming service.
 
@@ -51,7 +51,7 @@ brew untap nextfire/tap
 
 #### Install
 
-Install [Deno](https://deno.land), clone the repository and execute [`install.sh`](/scripts/install.sh):
+Install [Deno](https://deno.com) (v2+), clone the repository and execute [`install.sh`](/scripts/install.sh):
 
 ```
 git clone https://github.com/NextFire/apple-music-discord-rpc.git
