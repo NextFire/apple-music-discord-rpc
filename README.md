@@ -4,16 +4,16 @@
 
 Works with local tracks and Apple Music streaming service.
 
+<img width="350" alt="Screenshot 2024-08-29 at 20 05 10" src="./images/preview.png">
+
 ## Features
 
-- Can start in background at login
-- No status bar icon clutter
-- Small and (quite) easy to understand script
-- Presence is only enabled when actually playing something
-- Apple Music matching ([#5](https://github.com/NextFire/apple-music-discord-rpc/pull/5))
-- MusicBrainz artwork fallback ([#66](https://github.com/NextFire/apple-music-discord-rpc/pull/66))
-
-<img width="350" alt="Screenshot 2024-08-29 at 20 05 10" src="https://github.com/user-attachments/assets/dbfd53ab-a958-431a-b2bc-34ea3e835d25">
+- Seamless background startup on login, with no status bar clutter
+- Minimal codebase
+- Discord presence updates only while a track is actively playing
+- Quick-access button to view the current song directly on the Apple Music website ([#5](https://github.com/NextFire/apple-music-discord-rpc/pull/5))
+- MusicBrainz fallback for album artwork if Apple Music assets are unavailable ([#66](https://github.com/NextFire/apple-music-discord-rpc/pull/66))
+- Dynamic progress bar within Discord, showing “Listening to x” with real-time playback progress ([#107](https://github.com/NextFire/apple-music-discord-rpc/pull/107))
 
 ## Getting Started
 
