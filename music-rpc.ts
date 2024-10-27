@@ -66,6 +66,7 @@ class AppleMusicDiscordRPC {
     switch (state) {
       case "playing": {
         const props = await getMusicProps(this.appName);
+        const infos = await this.cachedTrackExtras(props);
         console.log("props:", props);
 
         let delta, start, end;
@@ -83,6 +84,15 @@ class AppleMusicDiscordRPC {
           timestamps: { start, end },
           assets: { large_image: "appicon" },
         };
+
+        if (infos !== null) {
+          activity.buttons = [
+            {
+              label: 'Listen on Apple Music',
+              url: infos.iTunesUrl,
+            }
+          ]
+        }
 
         if (props.artist) {
           activity.state = AppleMusicDiscordRPC.truncateString(props.artist);
