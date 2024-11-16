@@ -17,7 +17,7 @@ Works with local tracks and Apple Music streaming service.
 - MusicBrainz artwork fallback
   ([#66](https://github.com/NextFire/apple-music-discord-rpc/pull/66))
 
-<img width="350" alt="Screenshot 2024-08-29 at 20 05 10" src="https://github.com/user-attachments/assets/dbfd53ab-a958-431a-b2bc-34ea3e835d25">
+<img width="284" src="https://github.com/user-attachments/assets/b9ff2727-ed47-4ba7-8c0a-6b3876715f71">
 
 ## Getting Started
 
