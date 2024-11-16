@@ -96,6 +96,30 @@ class AppleMusicDiscordRPC {
             large_image: infos.artworkUrl ?? "appicon",
             large_text: AppleMusicDiscordRPC.truncateString(props.album),
           };
+
+          const buttons = [];
+
+          if (infos.iTunesUrl) {
+            buttons.push({
+              label: "Play on Apple Music",
+              url: infos.iTunesUrl,
+            });
+          }
+
+          const query = encodeURIComponent(
+            `artist:${props.artist} track:${props.name}`,
+          );
+          const spotifyUrl = `https://open.spotify.com/search/${query}?si`;
+          if (spotifyUrl.length <= 512) {
+            buttons.push({
+              label: "Search on Spotify",
+              url: spotifyUrl,
+            });
+          }
+
+          if (buttons.length > 0) {
+            activity.buttons = buttons;
+          }
         }
 
         await this.rpc.setActivity(activity);
