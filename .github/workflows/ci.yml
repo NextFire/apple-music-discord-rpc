@@ -3,11 +3,24 @@ name: CI
 on:
   push:
     branches: ["main", "renovate/*"]
+    tags: ["*"]
   pull_request:
     branches: ["main"]
   workflow_dispatch:
 
 jobs:
+  check:
+    if: startsWith(github.ref, 'refs/tags/') != true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+      - run: deno fmt --check
+      - run: deno lint
+        if: always()
+      - run: deno check --allow-import music-rpc.ts
+        if: always()
+
   compile:
     runs-on: ubuntu-latest
     env:
