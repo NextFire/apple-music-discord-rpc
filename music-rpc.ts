@@ -1,4 +1,4 @@
-#!/usr/bin/env deno run --allow-env --allow-run --allow-net --allow-read --allow-write --allow-ffi --allow-import --unstable-kv
+#!/usr/bin/env deno run --allow-env --allow-run --allow-net --allow-read --allow-write --allow-ffi --allow-hrtime --unstable-kv
 import type { Activity } from "https://deno.land/x/discord_rpc@0.3.2/mod.ts";
 import { Client } from "https://deno.land/x/discord_rpc@0.3.2/mod.ts";
 import type {} from "https://raw.githubusercontent.com/NextFire/jxa/v0.0.5/run/global.d.ts";
@@ -44,9 +44,13 @@ class AppleMusicDiscordRPC {
     } finally {
       // Ensure the connection is properly closed
       if (this.rpc.ipc) {
-        console.log("Closing connection to Discord RPC");
-        this.rpc.close();
-        this.rpc.ipc = undefined;
+        console.log("Attempting to close connection to Discord RPC");
+        try {
+          this.rpc.close();
+        } finally {
+          console.log("Connection to Discord RPC closed");
+          this.rpc.ipc = undefined;
+        }
       }
     }
   }
