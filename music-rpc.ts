@@ -44,9 +44,13 @@ class AppleMusicDiscordRPC {
     } finally {
       // Ensure the connection is properly closed
       if (this.rpc.ipc) {
-        console.log("Closing connection to Discord RPC");
-        this.rpc.close();
-        this.rpc.ipc = undefined;
+        console.log("Attempting to close connection to Discord RPC");
+        try {
+          this.rpc.close();
+        } finally {
+          console.log("Connection to Discord RPC closed");
+          this.rpc.ipc = undefined;
+        }
       }
     }
   }
