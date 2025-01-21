@@ -87,13 +87,13 @@ class AppleMusicDiscordRPC {
         const activity: Activity = {
           // @ts-ignore: "listening to" is allowed in recent Discord versions
           type: 2,
-          details: AppleMusicDiscordRPC.truncateString(props.name),
+          details: AppleMusicDiscordRPC.ensureStringLengthValid(props.name),
           timestamps: { start, end },
           assets: { large_image: "appicon" },
         };
 
         if (props.artist) {
-          activity.state = AppleMusicDiscordRPC.truncateString(props.artist);
+          activity.state = AppleMusicDiscordRPC.ensureStringLengthValid(props.artist);
         }
 
         if (props.album) {
@@ -102,7 +102,7 @@ class AppleMusicDiscordRPC {
 
           activity.assets = {
             large_image: infos.artworkUrl ?? "appicon",
-            large_text: AppleMusicDiscordRPC.truncateString(props.album),
+            large_text: AppleMusicDiscordRPC.ensureStringLengthValid(props.album),
           };
 
           const buttons = [];
@@ -130,7 +130,6 @@ class AppleMusicDiscordRPC {
           }
         }
 
-       AppleMusicDiscordRPC.padInvalidPropsWithWhitespace(activity);
         await this.rpc.setActivity(activity);
         return Math.min(
           (delta ?? this.defaultTimeout) + 1000,
@@ -179,13 +178,8 @@ class AppleMusicDiscordRPC {
     return version;
   }
 
-  static padInvalidPropsWithWhitespace(activity: Activity) : void {
-    if (activity.details?.length < 2) {
-      activity.details = this.padString(activity.details);
-    }
-    if (activity.assets?.large_text?.length < 2) {
-      activity.assets.large_text = this.padString(activity.assets.large_text);
-    }
+  static ensureStringLengthValid(value: string, maxLength = 128): string {
+    return (value.length < 2) ? this.padString(value) : this.truncateString(value, maxLength);
   }
 
   static truncateString(value: string, maxLength = 128): string {
