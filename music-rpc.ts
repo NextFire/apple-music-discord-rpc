@@ -130,6 +130,7 @@ class AppleMusicDiscordRPC {
           }
         }
 
+       AppleMusicDiscordRPC.padInvalidPropsWithWhitespace(activity);
         await this.rpc.setActivity(activity);
         return Math.min(
           (delta ?? this.defaultTimeout) + 1000,
@@ -178,10 +179,23 @@ class AppleMusicDiscordRPC {
     return version;
   }
 
+  static padInvalidPropsWithWhitespace(activity: Activity) : void {
+    if (activity.details?.length < 2) {
+      activity.details = this.padString(activity.details);
+    }
+    if (activity.assets?.large_text?.length < 2) {
+      activity.assets.large_text = this.padString(activity.assets.large_text);
+    }
+  }
+
   static truncateString(value: string, maxLength = 128): string {
     return value.length <= maxLength
       ? value
       : `${value.slice(0, maxLength - 3)}...`;
+  }
+
+  static padString(value: string): string {
+    return ` ${value} `;
   }
 }
 
