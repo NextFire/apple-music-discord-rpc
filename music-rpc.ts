@@ -178,18 +178,18 @@ class AppleMusicDiscordRPC {
     return version;
   }
 
-  static ensureStringLengthValid(value: string, maxLength = 128): string {
-    return (value.length < 2) ? this.padString(value) : this.truncateString(value, maxLength);
+  static ensureStringLengthValid(value: string, minLength = 2, maxLength = 128): string {
+    return (value.length < minLength) ? this.padString(value, minLength) : this.truncateString(value, maxLength);
   }
 
-  static truncateString(value: string, maxLength = 128): string {
+  static truncateString(value: string, maxLength: number): string {
     return value.length <= maxLength
       ? value
       : `${value.slice(0, maxLength - 3)}...`;
   }
 
-  static padString(value: string): string {
-    return ` ${value} `;
+  static padString(value: string, minLength: number): string {
+    return value.padEnd(minLength);
   }
 }
 
