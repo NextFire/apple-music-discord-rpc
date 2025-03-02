@@ -87,13 +87,15 @@ class AppleMusicDiscordRPC {
         const activity: Activity = {
           // @ts-ignore: "listening to" is allowed in recent Discord versions
           type: 2,
-          details: AppleMusicDiscordRPC.truncateString(props.name),
+          details: AppleMusicDiscordRPC.ensureValidStringLength(props.name),
           timestamps: { start, end },
           assets: { large_image: "appicon" },
         };
 
         if (props.artist) {
-          activity.state = AppleMusicDiscordRPC.truncateString(props.artist);
+          activity.state = AppleMusicDiscordRPC.ensureValidStringLength(
+            props.artist,
+          );
         }
 
         if (props.album) {
@@ -102,7 +104,9 @@ class AppleMusicDiscordRPC {
 
           activity.assets = {
             large_image: infos.artworkUrl ?? "appicon",
-            large_text: AppleMusicDiscordRPC.truncateString(props.album),
+            large_text: AppleMusicDiscordRPC.ensureValidStringLength(
+              props.album,
+            ),
           };
 
           const buttons = [];
@@ -178,10 +182,18 @@ class AppleMusicDiscordRPC {
     return version;
   }
 
-  static truncateString(value: string, maxLength = 128): string {
-    return value.length <= maxLength
-      ? value
-      : `${value.slice(0, maxLength - 3)}...`;
+  static ensureValidStringLength(
+    value: string,
+    minLength = 2,
+    maxLength = 128,
+  ): string {
+    if (value.length < minLength) {
+      return value.padEnd(minLength);
+    } else if (value.length > maxLength) {
+      return `${value.slice(0, maxLength - 3)}...`;
+    } else {
+      return value;
+    }
   }
 }
 
