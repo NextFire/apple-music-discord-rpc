@@ -344,6 +344,7 @@ function removeParenthesesContent(term: string): string {
 
 //#region TypeScript
 type iTunesAppName = "iTunes" | "Music";
+type DiscordClientName = "Discord" | "Discord Canary" | "Discord PTB" | "Discord Development";
 
 interface iTunesProps {
   id: number;
