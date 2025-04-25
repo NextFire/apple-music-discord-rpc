@@ -231,6 +231,15 @@ function getMusicProps(appName: iTunesAppName): Promise<iTunesProps> {
     };
   }, appName);
 }
+
+function isAnyDiscordRunning(): Promise<boolean> {
+  return run((clientNames: string[]) => {
+    const systemEvents = Application("System Events");
+    return clientNames.some(clientName => 
+      systemEvents.processes[clientName] && systemEvents.processes[clientName].exists()
+    );
+  }, DISCORD_CLIENTS);
+}
 //#endregion
 
 //#region Extras
