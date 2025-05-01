@@ -244,7 +244,7 @@ function isAnyDiscordRunning(): Promise<boolean> {
   return run((clientNames: string[]) => {
     const systemEvents = Application("System Events");
     return clientNames.some(clientName => 
-      systemEvents.processes[clientName] && systemEvents.processes[clientName].exists()
+      systemEvents.processes[clientName]?.exists()
     );
   }, DISCORD_CLIENTS);
 }
