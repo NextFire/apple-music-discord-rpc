@@ -6,7 +6,7 @@ import { run } from "https://raw.githubusercontent.com/NextFire/jxa/v0.0.5/run/m
 import type { iTunes } from "https://raw.githubusercontent.com/NextFire/jxa/v0.0.5/run/types/core.d.ts";
 
 // Discord clients
-const DISCORD_CLIENTS: DiscordClientName[] = ["Discord", "Discord Canary", "Discord PTB", "Discord Development"];
+const DISCORD_CLIENTS = ["Discord", "Discord Canary", "Discord PTB", "Discord Development"];
 
 //#region RPC
 class AppleMusicDiscordRPC {
