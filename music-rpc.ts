@@ -48,14 +48,14 @@ class AppleMusicDiscordRPC {
   }
 
   async setActivityLoop(): Promise<void> {
+    // Check if Discord is running
+    const discordRunning = await isAnyDiscordRunning();
+    if (!discordRunning) {
+      console.log("No Discord client is running. Waiting before retry...");
+      return;
+    }
+
     try {
-      // Check if Discord is running
-      const discordRunning = await isAnyDiscordRunning();
-      if (!discordRunning) {
-        console.log("No Discord client is running. Waiting before retry...");
-        return;
-      }
-    
     // Try to connect
       await this.rpc.connect();
       console.log("Connected to Discord RPC");
