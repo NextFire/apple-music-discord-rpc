@@ -6,7 +6,12 @@ import { run } from "https://raw.githubusercontent.com/NextFire/jxa/v0.0.5/run/m
 import type { iTunes } from "https://raw.githubusercontent.com/NextFire/jxa/v0.0.5/run/types/core.d.ts";
 
 // Discord clients
-const DISCORD_CLIENTS = ["Discord", "Discord Canary", "Discord PTB", "Discord Development"];
+const DISCORD_CLIENTS = [
+  "Discord",
+  "Discord Canary",
+  "Discord PTB",
+  "Discord Development",
+];
 
 //#region RPC
 class AppleMusicDiscordRPC {
@@ -243,7 +248,7 @@ function getMusicProps(appName: iTunesAppName): Promise<iTunesProps> {
 function isAnyDiscordRunning(): Promise<boolean> {
   return run((clientNames: string[]) => {
     const systemEvents = Application("System Events");
-    return clientNames.some(clientName => 
+    return clientNames.some(clientName) => 
       systemEvents.processes[clientName]?.exists()
     );
   }, DISCORD_CLIENTS);
