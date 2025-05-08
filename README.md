@@ -44,6 +44,13 @@ These commands
 
 The `music-rpc.ts` executable is now also in `PATH`.
 
+#### Upgrade
+
+```
+brew upgrade apple-music-discord-rpc
+brew services restart apple-music-discord-rpc
+```
+
 #### Uninstall
 
 ```
@@ -67,6 +74,14 @@ cd apple-music-discord-rpc/
 
 It will copy the [launch agent](/scripts/moe.yuru.music-rpc.plist) into
 `~/Library/LaunchAgents/` and edit it accordingly.
+
+#### Upgrade
+
+```
+cd apple-music-discord-rpc/
+git fetch && git reset --hard origin/main
+./scripts/install.sh
+```
 
 #### Uninstall
 
