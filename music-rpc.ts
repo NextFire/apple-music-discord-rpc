@@ -11,7 +11,8 @@ class AppleMusicDiscordRPC {
     iTunes: "979297966739300416",
     Music: "773825528921849856",
   };
-  static readonly KV_VERSION = 0;
+  // Increment after TrackExtras update
+  static readonly KV_VERSION = 1;
 
   private constructor(
     public readonly appName: iTunesAppName,
@@ -85,7 +86,7 @@ class AppleMusicDiscordRPC {
 
         // EVERYTHING must be less than or equal to 128 chars long
         const activity: Activity = {
-          // @ts-ignore: "listening to" is allowed in recent Discord versions
+          // @ts-expect-error: "listening to" is allowed in recent Discord versions
           type: 2,
           details: AppleMusicDiscordRPC.ensureValidStringLength(props.name),
           timestamps: { start, end },
@@ -93,6 +94,8 @@ class AppleMusicDiscordRPC {
         };
 
         if (props.artist) {
+          // @ts-expect-error: https://github.com/discord/discord-api-docs/pull/7674
+          activity.status_display_type = 1;
           activity.state = AppleMusicDiscordRPC.ensureValidStringLength(
             props.artist,
           );
@@ -102,21 +105,22 @@ class AppleMusicDiscordRPC {
           const infos = await this.cachedTrackExtras(props);
           console.log("infos:", infos);
 
+          // @ts-expect-error: https://github.com/discord/discord-api-docs/pull/7674
+          activity.details_url = infos.trackViewUrl;
+
+          // @ts-expect-error: https://github.com/discord/discord-api-docs/pull/7674
+          activity.state_url = infos.artistViewUrl;
+
           activity.assets = {
             large_image: infos.artworkUrl ?? "appicon",
             large_text: AppleMusicDiscordRPC.ensureValidStringLength(
               props.album,
             ),
+            // @ts-expect-error: https://github.com/discord/discord-api-docs/pull/7674
+            large_url: infos.collectionViewUrl,
           };
 
           const buttons = [];
-
-          if (infos.iTunesUrl) {
-            buttons.push({
-              label: "Play on Apple Music",
-              url: infos.iTunesUrl,
-            });
-          }
 
           const query = encodeURIComponent(
             `artist:${props.artist} track:${props.name}`,
@@ -257,7 +261,9 @@ async function fetchTrackExtras(props: iTunesProps): Promise<TrackExtras> {
 
   return {
     artworkUrl: result?.artworkUrl100 ?? (await musicBrainzArtwork(props)),
-    iTunesUrl: result?.trackViewUrl,
+    artistViewUrl: result?.artistViewUrl,
+    collectionViewUrl: result?.collectionViewUrl,
+    trackViewUrl: result?.trackViewUrl,
   };
 }
 
@@ -357,7 +363,9 @@ interface iTunesProps {
 
 interface TrackExtras {
   artworkUrl?: string;
-  iTunesUrl?: string;
+  artistViewUrl?: string;
+  collectionViewUrl?: string;
+  trackViewUrl?: string;
 }
 
 interface iTunesSearchResponse {
@@ -369,6 +377,8 @@ interface iTunesSearchResult {
   trackName: string;
   collectionName: string;
   artworkUrl100: string;
+  artistViewUrl: string;
+  collectionViewUrl: string;
   trackViewUrl: string;
 }
 
