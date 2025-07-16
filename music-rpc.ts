@@ -5,6 +5,14 @@ import type {} from "https://raw.githubusercontent.com/NextFire/jxa/v0.0.5/run/g
 import { run } from "https://raw.githubusercontent.com/NextFire/jxa/v0.0.5/run/mod.ts";
 import type { iTunes } from "https://raw.githubusercontent.com/NextFire/jxa/v0.0.5/run/types/core.d.ts";
 
+// Discord clients
+const DISCORD_CLIENTS = [
+  "Discord",
+  "Discord Canary",
+  "Discord PTB",
+  "Discord Development",
+];
+
 //#region RPC
 class AppleMusicDiscordRPC {
   static readonly CLIENT_IDS: Record<iTunesAppName, string> = {
@@ -46,7 +54,15 @@ class AppleMusicDiscordRPC {
   }
 
   async setActivityLoop(): Promise<void> {
+    // Check if Discord is running
+    const discordRunning = await isAnyDiscordRunning();
+    if (!discordRunning) {
+      console.log("No Discord client is running. Waiting before retry...");
+      return;
+    }
+
     try {
+    // Try to connect
       await this.rpc.connect();
       console.log("Connected to Discord RPC");
       while (true) {
@@ -231,6 +247,15 @@ function getMusicProps(appName: iTunesAppName): Promise<iTunesProps> {
       playerPosition: music.playerPosition(),
     };
   }, appName);
+}
+
+function isAnyDiscordRunning(): Promise<boolean> {
+  return run((clientNames: string[]) => {
+    const systemEvents = Application("System Events");
+    return clientNames.some(clientName) => 
+      systemEvents.processes[clientName]?.exists()
+    );
+  }, DISCORD_CLIENTS);
 }
 //#endregion
 
