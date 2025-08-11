@@ -13,7 +13,7 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/') != true
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: denoland/setup-deno@v2
       - run: deno fmt --check
       - run: deno lint
@@ -26,7 +26,7 @@ jobs:
     env:
       flags: --allow-env --allow-run --allow-net --allow-read --allow-write --allow-ffi --allow-import --unstable-kv
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Get commit SHA
         id: version
         run: echo commit_sha=$(git log -n1 --format='%h') >> "$GITHUB_OUTPUT"
