@@ -21,10 +21,16 @@ class AppleMusicDiscordRPC {
     public readonly defaultTimeout: number,
   ) {}
 
+
   async run(): Promise<void> {
+    // Restart after 24 hours (in milliseconds)
+    const MAX_RUNTIME = 24 * 60 * 60 * 1000;
+    console.log("Run check");
+    const startTime = Date.now();
+  
     while (true) {
       try {
-        await this.setActivityLoop();
+        await this.setActivityLoop(startTime, MAX_RUNTIME);
       } catch (err) {
         console.error(err);
       }
@@ -45,17 +51,24 @@ class AppleMusicDiscordRPC {
     }
   }
 
-  async setActivityLoop(): Promise<void> {
+  async setActivityLoop(startTime?: number, maxRuntime?: number): Promise<void> {
     try {
       await this.rpc.connect();
       console.log("Connected to Discord RPC");
       while (true) {
+        // Check if we need to restart
+        if (startTime && maxRuntime && (Date.now() - startTime > maxRuntime)) {
+          console.log("24 hours elapsed, restarting to clear memory");
+          this.tryCloseRPC();
+          this.kv.close();
+          Deno.exit(0);
+        }
+        
         const timeout = await this.setActivity();
         console.log("Next setActivity in %dms", timeout);
         await sleep(timeout);
       }
     } finally {
-      // Ensure the connection is properly closed
       this.tryCloseRPC();
     }
   }
