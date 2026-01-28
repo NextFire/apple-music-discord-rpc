@@ -53,6 +53,11 @@ class AppleMusicDiscordRPC {
   }
 
   async setActivityLoop(): Promise<void> {
+    const discordRunning = await isDiscordRunning();
+    if (!discordRunning) {
+      console.log("No Discord client is running");
+      return;
+    }
     try {
       await this.rpc.connect();
       console.log("Connected to Discord RPC");
@@ -72,10 +77,10 @@ class AppleMusicDiscordRPC {
   }
 
   async setActivity(): Promise<number> {
-    const open = await isMusicOpen(this.appName);
-    console.log("open:", open);
+    const musicRunning = await isMusicRunning(this.appName);
+    console.log("musicRunning:", musicRunning);
 
-    if (!open) {
+    if (!musicRunning) {
       await this.rpc.clearActivity();
       return this.defaultTimeout;
     }
@@ -224,7 +229,16 @@ await client.run();
 //#endregion
 
 //#region JXA
-function isMusicOpen(appName: iTunesAppName): Promise<boolean> {
+function isDiscordRunning(): Promise<boolean> {
+  return run((clientNames: string[]) => {
+    const systemEvents = Application("System Events");
+    return clientNames.some((clientName) =>
+      systemEvents.processes[clientName]?.exists()
+    );
+  }, ["Discord", "Discord PTB", "Discord Canary"]);
+}
+
+function isMusicRunning(appName: iTunesAppName): Promise<boolean> {
   return run((appName: iTunesAppName) => {
     return Application("System Events").processes[appName].exists();
   }, appName);
