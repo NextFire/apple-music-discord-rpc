@@ -12,7 +12,7 @@ class AppleMusicDiscordRPC {
     Music: "773825528921849856",
   };
   // Increment after TrackExtras update
-  static readonly KV_VERSION = 1;
+  static readonly KV_VERSION = 2;
 
   private startTime!: number;
 
@@ -90,70 +90,7 @@ class AppleMusicDiscordRPC {
 
     switch (state) {
       case "playing": {
-        const props = await getMusicProps(this.appName);
-        console.log("props:", props);
-
-        let delta, start, end;
-        if (props.duration) {
-          delta = (props.duration - props.playerPosition) * 1000;
-          end = Math.ceil(Date.now() + delta);
-          start = Math.ceil(Date.now() - props.playerPosition * 1000);
-        }
-
-        // EVERYTHING must be less than or equal to 128 chars long
-        const activity: Activity = {
-          // @ts-expect-error: "listening to" is allowed in recent Discord versions
-          type: 2,
-          details: AppleMusicDiscordRPC.ensureValidStringLength(props.name),
-          timestamps: { start, end },
-          assets: { large_image: "appicon" },
-        };
-
-        if (props.artist) {
-          // @ts-expect-error: https://github.com/discord/discord-api-docs/pull/7674
-          activity.status_display_type = 1;
-          activity.state = AppleMusicDiscordRPC.ensureValidStringLength(
-            props.artist,
-          );
-        }
-
-        if (props.album) {
-          const infos = await this.cachedTrackExtras(props);
-          console.log("infos:", infos);
-
-          // @ts-expect-error: https://github.com/discord/discord-api-docs/pull/7674
-          activity.details_url = infos.trackViewUrl;
-
-          // @ts-expect-error: https://github.com/discord/discord-api-docs/pull/7674
-          activity.state_url = infos.artistViewUrl;
-
-          activity.assets = {
-            large_image: infos.artworkUrl ?? "appicon",
-            large_text: AppleMusicDiscordRPC.ensureValidStringLength(
-              props.album,
-            ),
-            // @ts-expect-error: https://github.com/discord/discord-api-docs/pull/7674
-            large_url: infos.collectionViewUrl,
-          };
-
-          const buttons: NonNullable<Activity["buttons"]> = [];
-
-          const query = encodeURIComponent(
-            `artist:${props.artist} track:${props.name}`,
-          );
-          const spotifyUrl = `https://open.spotify.com/search/${query}?si`;
-          if (spotifyUrl.length <= 512) {
-            buttons.push({
-              label: "Search on Spotify",
-              url: spotifyUrl,
-            });
-          }
-
-          if (buttons.length > 0) {
-            activity.buttons = buttons;
-          }
-        }
-
+        const { activity, delta } = await this.getPlayingActivity();
         await this.rpc.setActivity(activity);
         return Math.min(
           (delta ?? this.defaultTimeout) + 1000,
@@ -172,18 +109,79 @@ class AppleMusicDiscordRPC {
     }
   }
 
-  async cachedTrackExtras(props: iTunesProps): Promise<TrackExtras> {
-    const { name, artist, album } = props;
-    const cacheIndex = `${name} ${artist} ${album}`;
-    const entry = await this.kv.get<TrackExtras>(["extras", cacheIndex]);
-    let infos = entry.value;
+  async getPlayingActivity(): Promise<{ activity: Activity; delta?: number }> {
+    const properties = await getMusicProperties(this.appName);
+    console.log("properties:", properties);
 
-    if (!infos) {
-      infos = await fetchTrackExtras(props);
-      await this.kv.set(["extras", cacheIndex], infos);
+    let delta, start, end;
+    if (properties.duration) {
+      delta = (properties.duration - properties.playerPosition) * 1000;
+      start = Math.ceil(Date.now() - properties.playerPosition * 1000);
+      end = Math.ceil(Date.now() + delta);
     }
 
-    return infos;
+    // EVERYTHING must be less than or equal to 128 chars long
+    const activity: Activity = {
+      // @ts-expect-error: "listening to" has been added in recent Discord versions
+      type: 2,
+      details: AppleMusicDiscordRPC.ensureValidStringLength(properties.name),
+      timestamps: { start, end },
+    };
+
+    if (properties.artist) {
+      // @ts-expect-error: https://github.com/discord/discord-api-docs/pull/7674
+      activity.status_display_type = 1;
+      activity.state = AppleMusicDiscordRPC.ensureValidStringLength(
+        properties.artist,
+      );
+    }
+
+    if (properties.album) {
+      const extras = await this.cachedTrackExtras(properties);
+      console.log("extras:", extras);
+
+      // @ts-expect-error: https://github.com/discord/discord-api-docs/pull/7674
+      activity.details_url = extras.trackViewUrl;
+
+      // @ts-expect-error: https://github.com/discord/discord-api-docs/pull/7674
+      activity.state_url = extras.artistViewUrl;
+
+      activity.assets = {
+        large_image: extras.artworkUrl,
+        large_text: AppleMusicDiscordRPC.ensureValidStringLength(
+          properties.album,
+        ),
+        // @ts-expect-error: https://github.com/discord/discord-api-docs/pull/7674
+        large_url: extras.collectionViewUrl,
+      };
+
+      const buttons: NonNullable<Activity["buttons"]> = [];
+
+      const spotifyQuery = encodeURIComponent(
+        `artist:${properties.artist} track:${properties.name}`,
+      );
+      const spotifyUrl = `https://open.spotify.com/search/${spotifyQuery}?si`;
+      if (spotifyUrl.length <= 512) {
+        buttons.push({ label: "Search on Spotify", url: spotifyUrl });
+      }
+
+      if (buttons.length > 0) {
+        activity.buttons = buttons;
+      }
+    }
+
+    return { activity, delta };
+  }
+
+  async cachedTrackExtras(properties: iTunesProperties): Promise<TrackExtras> {
+    const cacheId = properties.persistentID;
+    const entry = await this.kv.get<TrackExtras>(["extras", cacheId]);
+    let extras = entry.value;
+    if (!extras) {
+      extras = await fetchTrackExtras(this.appName, properties);
+      await this.kv.set(["extras", cacheId], extras);
+    }
+    return extras;
   }
 
   static async create(
@@ -251,7 +249,7 @@ function getMusicState(appName: iTunesAppName): Promise<string> {
   }, appName);
 }
 
-function getMusicProps(appName: iTunesAppName): Promise<iTunesProps> {
+function getMusicProperties(appName: iTunesAppName): Promise<iTunesProperties> {
   return run((appName: iTunesAppName) => {
     const music = Application(appName) as unknown as iTunes;
     return {
@@ -260,35 +258,68 @@ function getMusicProps(appName: iTunesAppName): Promise<iTunesProps> {
     };
   }, appName);
 }
+
+async function getAlbumArtwork(
+  appName: iTunesAppName,
+): Promise<Blob | undefined> {
+  const rawData = await run((appName: iTunesAppName) => {
+    const music = Application(appName) as unknown as iTunes;
+    return music.currentTrack().artworks[0].rawData();
+  }, appName);
+
+  const dataStr = String(rawData);
+  const hexMatch = dataStr.match(/\$([0-9A-Fa-f]+)\$/);
+  if (!hexMatch) {
+    return undefined;
+  }
+
+  // Convert hex string to Uint8Array
+  const hexString = hexMatch[1];
+  const length = hexString.length;
+  const data = new Uint8Array(length / 2);
+  for (let i = 0; i < length; i += 2) {
+    data[i / 2] = parseInt(hexString.substring(i, i + 2), 16);
+  }
+
+  // Detect image format from magic bytes
+  let mimeType: string;
+  if (data[0] === 0xFF && data[1] === 0xD8 && data[2] === 0xFF) {
+    mimeType = "image/jpeg";
+  } else if (
+    data[0] === 0x89 && data[1] === 0x50 && data[2] === 0x4E && data[3] === 0x47
+  ) {
+    mimeType = "image/png";
+  } else if (data[0] === 0x47 && data[1] === 0x49 && data[2] === 0x46) {
+    mimeType = "image/gif";
+  } else if (data[0] === 0x42 && data[1] === 0x4D) {
+    mimeType = "image/bmp";
+  } else {
+    return undefined;
+  }
+
+  return new Blob([data], { type: mimeType });
+}
 //#endregion
 
 //#region Extras
-async function fetchTrackExtras(props: iTunesProps): Promise<TrackExtras> {
-  const json = await iTunesSearch(props);
+async function fetchTrackExtras(
+  appName: iTunesAppName,
+  properties: iTunesProperties,
+): Promise<TrackExtras> {
+  const json = await iTunesSearch(properties);
+  const result = findMatchingResult(properties, json);
 
-  let result: iTunesSearchResult | undefined;
-  if (json && json.resultCount === 1) {
-    result = json.results[0];
-  } else if (json && json.resultCount > 1) {
-    // If there are multiple results, find the right album
-    // Use includes as imported songs may format it differently
-    // Also put them all to lowercase in case of differing capitalisation
-    result = json.results.find(
-      (r) =>
-        r.collectionName.toLowerCase().includes(props.album.toLowerCase()) &&
-        r.trackName.toLowerCase().includes(props.name.toLowerCase()),
-    );
-  } else if (props.album.match(/\(.*\)$/)) {
-    // If there are no results, try to remove the part
-    // of the album name in parentheses (e.g. "Album (Deluxe Edition)")
-    return await fetchTrackExtras({
-      ...props,
-      album: props.album.replace(/\(.*\)$/, "").trim(),
+  // If no results and album has parenthetical suffix, retry without it
+  // e.g. "Album (Deluxe Edition)" -> "Album"
+  if (!result && properties.album.match(/\(.*\)$/)) {
+    return fetchTrackExtras(appName, {
+      ...properties,
+      album: properties.album.replace(/\(.*\)$/, "").trim(),
     });
   }
 
   return {
-    artworkUrl: result?.artworkUrl100 ?? (await musicBrainzArtwork(props)),
+    artworkUrl: result?.artworkUrl100 ?? await uploadedLocalArtworkUrl(appName),
     artistViewUrl: result?.artistViewUrl,
     collectionViewUrl: result?.collectionViewUrl,
     trackViewUrl: result?.trackViewUrl,
@@ -296,91 +327,84 @@ async function fetchTrackExtras(props: iTunesProps): Promise<TrackExtras> {
 }
 
 async function iTunesSearch(
-  { name, artist, album }: iTunesProps,
-  retryCount: number = 3,
+  { name, artist, album }: iTunesProperties,
 ): Promise<iTunesSearchResponse | undefined> {
-  // Asterisks tend to result in no songs found, and songs are usually able to be found without it
-  const query = `${name} ${artist} ${album}`.replace("*", "");
   const params = new URLSearchParams({
     media: "music",
     entity: "song",
-    term: query,
+    term: `${name} ${artist} ${album}`,
+    // default to Japan store for more comprehensive results
+    // western + asian music
+    country: "JP",
   });
   const url = `https://itunes.apple.com/search?${params}`;
+  console.log("iTunes search", url);
 
-  for (let i = 0; i < retryCount; i++) {
+  for (let attempt = 1; attempt <= 3; attempt++) {
     const resp = await fetch(url);
-    if (!resp.ok) {
-      console.error(
-        "Failed to fetch from iTunes API: %s %s (Attempt %d/%d)",
-        resp.statusText,
-        url,
-        i + 1,
-        retryCount,
-      );
-      resp.body?.cancel();
-      await sleep(200);
-      continue;
-    }
-    return (await resp.json()) as iTunesSearchResponse;
-  }
-}
-
-async function musicBrainzArtwork({
-  name,
-  artist,
-  album,
-}: iTunesProps): Promise<string | undefined> {
-  const MB_EXCLUDED_NAMES = ["", "Various Artist"];
-
-  const queryTerms = [];
-  if (!MB_EXCLUDED_NAMES.every((elem) => artist.includes(elem))) {
-    queryTerms.push(
-      `artist:"${luceneEscape(removeParenthesesContent(artist))}"`,
-    );
-  }
-  if (!MB_EXCLUDED_NAMES.every((elem) => album.includes(elem))) {
-    queryTerms.push(`release:"${luceneEscape(album)}"`);
-  } else {
-    queryTerms.push(`recording:"${luceneEscape(name)}"`);
-  }
-  const query = queryTerms.join(" ");
-
-  const params = new URLSearchParams({
-    fmt: "json",
-    limit: "10",
-    query,
-  });
-
-  const resp = await fetch(`https://musicbrainz.org/ws/2/release?${params}`);
-  const json = (await resp.json()) as MBReleaseLookupResponse;
-
-  for (const release of json.releases) {
-    const resp = await fetch(
-      `https://coverartarchive.org/release/${release.id}/front`,
-      { method: "HEAD" },
-    );
-    await resp.body?.cancel();
     if (resp.ok) {
-      return resp.url;
+      const json = await resp.json();
+      return json as iTunesSearchResponse;
     }
+    console.error(
+      "Failed to fetch from iTunes API: %s %s",
+      resp.statusText,
+      url,
+    );
+    resp.body?.cancel();
+    await sleep(200);
   }
 }
 
-function luceneEscape(term: string): string {
-  return term.replace(/([+\-&|!(){}\[\]^"~*?:\\])/g, "\\$1");
+function findMatchingResult(
+  properties: iTunesProperties,
+  json: iTunesSearchResponse | undefined,
+): iTunesSearchResult | undefined {
+  if (!json || json.resultCount === 0) {
+    return undefined;
+  }
+  if (json.resultCount === 1) {
+    return json.results[0];
+  }
+  // Multiple results: find the one matching album and track name
+  // Use includes() for flexibility with imported songs' formatting
+  const albumLower = properties.album.toLowerCase();
+  const nameLower = properties.name.toLowerCase();
+  return json.results.find(
+    (r) =>
+      r.collectionName.toLowerCase().includes(albumLower) &&
+      r.trackName.toLowerCase().includes(nameLower),
+  );
 }
 
-function removeParenthesesContent(term: string): string {
-  return term.replace(/\([^)]*\)/g, "").trim();
+async function uploadedLocalArtworkUrl(
+  appName: iTunesAppName,
+): Promise<string | undefined> {
+  const localArtwork = await getAlbumArtwork(appName);
+  return localArtwork ? await catboxUpload(localArtwork) : undefined;
+}
+
+async function catboxUpload(blob: Blob): Promise<string> {
+  const formData = new FormData();
+  formData.append("reqtype", "fileupload");
+  formData.append("fileToUpload", blob, "artwork.jpg");
+  const response = await fetch("https://catbox.moe/user/api.php", {
+    method: "POST",
+    body: formData,
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to upload to catbox.moe: ${response.statusText}`);
+  }
+  const url = await response.text();
+  return url.trim();
 }
 //#endregion
 
 //#region TypeScript
 type iTunesAppName = "iTunes" | "Music";
 
-interface iTunesProps {
-  id: number;
+interface iTunesProperties {
+  persistentID: string;
   name: string;
   artist: string;
   album: string;
@@ -408,13 +432,5 @@ interface iTunesSearchResult {
   artistViewUrl: string;
   collectionViewUrl: string;
   trackViewUrl: string;
-}
-
-interface MBReleaseLookupResponse {
-  releases: MBRelease[];
-}
-
-interface MBRelease {
-  id: string;
 }
 //#endregion

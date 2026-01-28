@@ -14,8 +14,7 @@ Works with local tracks and Apple Music streaming service.
 - Presence is only enabled when actually playing something
 - Apple Music matching
   ([#5](https://github.com/NextFire/apple-music-discord-rpc/pull/5))
-- MusicBrainz artwork fallback
-  ([#66](https://github.com/NextFire/apple-music-discord-rpc/pull/66))
+- Local artwork upload to Catbox fallback
 
 <img width="230" height="47" alt="image" src="https://github.com/user-attachments/assets/2e168586-4202-46a3-a2d5-0e4e499ecdc6" />
 <img width="296" height="128" alt="image" src="https://github.com/user-attachments/assets/d5c01904-d43e-4f10-990d-2c75ff3acc61" />
