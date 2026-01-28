@@ -14,14 +14,21 @@ class AppleMusicDiscordRPC {
   // Increment after TrackExtras update
   static readonly KV_VERSION = 1;
 
-  private constructor(
-    public readonly appName: iTunesAppName,
-    public readonly rpc: Client,
-    public readonly kv: Deno.Kv,
-    public readonly defaultTimeout: number,
+  private startTime!: number;
+
+  /**
+   * @private Use `AppleMusicDiscordRPC.create()` instead.
+   */
+  constructor(
+    private readonly appName: iTunesAppName,
+    private readonly rpc: Client,
+    private readonly kv: Deno.Kv,
+    private readonly defaultTimeout: number = 15 * 1000,
+    private readonly maxRuntime: number = 24 * 60 * 60 * 1000, // 24 hours
   ) {}
 
   async run(): Promise<void> {
+    this.startTime = Date.now();
     while (true) {
       try {
         await this.setActivityLoop();
@@ -50,6 +57,10 @@ class AppleMusicDiscordRPC {
       await this.rpc.connect();
       console.log("Connected to Discord RPC");
       while (true) {
+        if (Date.now() - this.startTime >= this.maxRuntime) {
+          console.log("Max runtime reached, restarting to clear memory");
+          Deno.exit(0);
+        }
         const timeout = await this.setActivity();
         console.log("Next setActivity in %dms", timeout);
         await sleep(timeout);
@@ -120,7 +131,7 @@ class AppleMusicDiscordRPC {
             large_url: infos.collectionViewUrl,
           };
 
-          const buttons = [];
+          const buttons: NonNullable<Activity["buttons"]> = [];
 
           const query = encodeURIComponent(
             `artist:${props.artist} track:${props.name}`,
@@ -170,12 +181,15 @@ class AppleMusicDiscordRPC {
     return infos;
   }
 
-  static async create(defaultTimeout = 15e3): Promise<AppleMusicDiscordRPC> {
+  static async create(
+    ...opts: ConstructorParameters<typeof this> extends
+      [unknown, unknown, unknown, ...infer T] ? T : never
+  ): Promise<AppleMusicDiscordRPC> {
     const macOSVersion = await this.getMacOSVersion();
     const appName: iTunesAppName = macOSVersion >= 10.15 ? "Music" : "iTunes";
     const rpc = new Client({ id: this.CLIENT_IDS[appName] });
     const kv = await Deno.openKv(`cache_v${this.KV_VERSION}.sqlite3`);
-    return new this(appName, rpc, kv, defaultTimeout);
+    return new this(appName, rpc, kv, ...opts);
   }
 
   static async getMacOSVersion(): Promise<number> {
