@@ -36,7 +36,7 @@ jobs:
           deno compile ${{ env.flags }} --target x86_64-apple-darwin music-rpc.ts
           mv music-rpc music-rpc-${{ steps.version.outputs.commit_sha }}-x86_64-apple-darwin
       - name: Upload x86_64
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: music-rpc-${{ steps.version.outputs.commit_sha }}-x86_64-apple-darwin
           path: music-rpc-${{ steps.version.outputs.commit_sha }}-x86_64-apple-darwin
@@ -45,7 +45,7 @@ jobs:
           deno compile ${{ env.flags }} --target aarch64-apple-darwin music-rpc.ts
           mv music-rpc music-rpc-${{ steps.version.outputs.commit_sha }}-aarch64-apple-darwin
       - name: Upload aarch64
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: music-rpc-${{ steps.version.outputs.commit_sha }}-aarch64-apple-darwin
           path: music-rpc-${{ steps.version.outputs.commit_sha }}-aarch64-apple-darwin
