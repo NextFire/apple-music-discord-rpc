@@ -177,11 +177,7 @@ class AppleMusicDiscordRPC {
     const cacheId = properties.persistentID;
     const entry = await this.kv.get<TrackExtras>(["extras", cacheId]);
     let extras = entry.value;
-    if (
-      !extras ||
-      (extras.artworkUrlExpiresAt &&
-        extras.artworkUrlExpiresAt < Date.now())
-    ) {
+    if (!extras || (extras.expiresAt && extras.expiresAt < Date.now())) {
       extras = await fetchTrackExtras(this.appName, properties);
       await this.kv.set(["extras", cacheId], extras);
     }
@@ -332,7 +328,7 @@ async function fetchTrackExtras(
   if (!extras.artworkUrl) {
     const uploaded = await uploadedLocalArtworkUrl(appName);
     extras.artworkUrl = uploaded?.url;
-    extras.artworkUrlExpiresAt = uploaded?.expiresAt;
+    extras.expiresAt = uploaded?.expiresAt;
   }
 
   return extras;
@@ -434,10 +430,10 @@ interface iTunesProperties {
 
 interface TrackExtras {
   artworkUrl?: string;
-  artworkUrlExpiresAt?: number;
   artistViewUrl?: string;
   collectionViewUrl?: string;
   trackViewUrl?: string;
+  expiresAt?: number;
 }
 
 interface iTunesSearchResponse {
