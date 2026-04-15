@@ -12,7 +12,7 @@ class AppleMusicDiscordRPC {
     Music: "773825528921849856",
   };
   // Increment after TrackExtras update
-  static readonly KV_VERSION = 2;
+  static readonly KV_VERSION = 3;
 
   private startTime!: number;
 
@@ -177,7 +177,7 @@ class AppleMusicDiscordRPC {
     const cacheId = properties.persistentID;
     const entry = await this.kv.get<TrackExtras>(["extras", cacheId]);
     let extras = entry.value;
-    if (!extras) {
+    if (!extras || (extras.expiresAt && extras.expiresAt < Date.now())) {
       extras = await fetchTrackExtras(this.appName, properties);
       await this.kv.set(["extras", cacheId], extras);
     }
@@ -318,12 +318,20 @@ async function fetchTrackExtras(
     });
   }
 
-  return {
-    artworkUrl: result?.artworkUrl100 ?? await uploadedLocalArtworkUrl(appName),
+  const extras: TrackExtras = {
+    artworkUrl: result?.artworkUrl100,
     artistViewUrl: result?.artistViewUrl,
     collectionViewUrl: result?.collectionViewUrl,
     trackViewUrl: result?.trackViewUrl,
   };
+
+  if (!extras.artworkUrl) {
+    const uploaded = await uploadedLocalArtworkUrl(appName);
+    extras.artworkUrl = uploaded?.url;
+    extras.expiresAt = uploaded?.expiresAt;
+  }
+
+  return extras;
 }
 
 async function iTunesSearch(
@@ -379,24 +387,31 @@ function findMatchingResult(
 
 async function uploadedLocalArtworkUrl(
   appName: iTunesAppName,
-): Promise<string | undefined> {
+): Promise<{ url: string; expiresAt: number } | undefined> {
   const localArtwork = await getAlbumArtwork(appName);
-  return localArtwork ? await catboxUpload(localArtwork) : undefined;
+  return localArtwork ? await litterboxUpload(localArtwork) : undefined;
 }
 
-async function catboxUpload(blob: Blob): Promise<string> {
+async function litterboxUpload(
+  blob: Blob,
+): Promise<{ url: string; expiresAt: number }> {
   const formData = new FormData();
   formData.append("reqtype", "fileupload");
+  formData.append("time", "1h");
   formData.append("fileToUpload", blob, "artwork.jpg");
-  const response = await fetch("https://catbox.moe/user/api.php", {
-    method: "POST",
-    body: formData,
-  });
+  const response = await fetch(
+    "https://litterbox.catbox.moe/resources/internals/api.php",
+    {
+      method: "POST",
+      body: formData,
+    },
+  );
   if (!response.ok) {
     throw new Error(`Failed to upload to catbox.moe: ${response.statusText}`);
   }
   const url = await response.text();
-  return url.trim();
+  const expiresAt = Date.now() + 60 * 60 * 1000;
+  return { url: url.trim(), expiresAt };
 }
 //#endregion
 
@@ -418,6 +433,7 @@ interface TrackExtras {
   artistViewUrl?: string;
   collectionViewUrl?: string;
   trackViewUrl?: string;
+  expiresAt?: number;
 }
 
 interface iTunesSearchResponse {

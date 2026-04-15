@@ -12,7 +12,7 @@ Works with local tracks and the Apple Music streaming service.
 - Small and (relatively) easy-to-understand script
 - Presence is enabled only when music is actually playing
 - Apple Music matching
-- Local artwork upload on catbox.moe as a fallback
+- Local artwork temporary upload on litterbox.catbox.moe as a fallback
 
 <img width="230" height="47" alt="image" src="https://github.com/user-attachments/assets/2e168586-4202-46a3-a2d5-0e4e499ecdc6" />
 <img width="296" height="128" alt="image" src="https://github.com/user-attachments/assets/d5c01904-d43e-4f10-990d-2c75ff3acc61" />
