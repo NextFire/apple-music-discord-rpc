@@ -29,8 +29,7 @@ launch agent so it starts at login.
 After installing [Homebrew](https://brew.sh), run:
 
 ```
-brew tap nextfire/tap
-brew install apple-music-discord-rpc
+brew install nextfire/tap/apple-music-discord-rpc
 brew services restart apple-music-discord-rpc
 ```
 
