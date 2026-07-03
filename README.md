@@ -33,8 +33,8 @@ brew install nextfire/tap/apple-music-discord-rpc
 brew services restart apple-music-discord-rpc
 ```
 
-_You may need to approve the installation of this third-party formula, see [tap 
-trust documentation](https://docs.brew.sh/Tap-Trust)._
+_You may need to approve the installation of this third-party formula, see
+[tap trust documentation](https://docs.brew.sh/Tap-Trust)._
 
 These commands add [this tap](https://github.com/NextFire/homebrew-tap) to
 Homebrew, install the `apple-music-discord-rpc` formula (and Deno), and enable
