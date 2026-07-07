@@ -233,7 +233,7 @@ function isDiscordRunning(): Promise<boolean> {
     return clientNames.some((clientName) =>
       systemEvents.processes[clientName]?.exists()
     );
-  }, ["Discord", "Discord PTB", "Discord Canary"]);
+  }, ["Discord", "Discord PTB", "Discord Canary", "Vesktop"]);
 }
 
 function isMusicRunning(appName: iTunesAppName): Promise<boolean> {
