@@ -2,7 +2,6 @@
 import type { Activity } from "https://deno.land/x/discord_rpc@0.3.2/mod.ts";
 import { Client } from "https://deno.land/x/discord_rpc@0.3.2/mod.ts";
 import type {} from "https://raw.githubusercontent.com/NextFire/jxa/v0.0.5/run/global.d.ts";
-import { run } from "https://raw.githubusercontent.com/NextFire/jxa/v0.0.5/run/mod.ts";
 import type { iTunes } from "https://raw.githubusercontent.com/NextFire/jxa/v0.0.5/run/types/core.d.ts";
 
 //#region RPC
@@ -220,6 +219,64 @@ class AppleMusicDiscordRPC {
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Local replacement for NextFire/jxa `run`.
+// The script is passed to osascript via `-e` (argv) instead of piped stdin so
+// that we can use Deno.Command#output() instead of spawn(): the
+// ChildProcess/ReadableStream machinery behind spawn() slowly leaks RSS when
+// used in a polling loop (denoland/deno#24674, fixed for the output() path in
+// Deno 2.7.13 by denoland/deno#33335).
+async function run<R, A extends unknown[]>(
+  jxaFunction: (...args: A) => R,
+  ...args: A
+): Promise<R> {
+  const code = `
+  ObjC.import('stdlib');
+  const args = JSON.parse($.getenv('OSA_ARGS'));
+  const fn   = (${jxaFunction.toString()});
+  const out  = fn.apply(null, args);
+  JSON.stringify({ result: out });
+  `;
+  const cmd = new Deno.Command("osascript", {
+    args: ["-l", "JavaScript", "-e", code],
+    env: { OSA_ARGS: JSON.stringify(args) },
+    stdin: "null",
+    stdout: "piped",
+    stderr: "piped",
+  });
+  const { stdout, stderr } = await cmd.output();
+
+  const decoder = new TextDecoder();
+  if (stderr.length) {
+    throwOsascriptError(decoder.decode(stderr));
+  }
+  if (!stdout.length) {
+    return undefined as R;
+  }
+  const outStr = decoder.decode(stdout).trim();
+  try {
+    return JSON.parse(outStr).result as R;
+  } catch {
+    return outStr as R;
+  }
+}
+
+function throwOsascriptError(message: string): never {
+  const groups = message.match(
+    /execution\serror:\sError:\s(?<type>\w+):\s(?<message>.+)\(-\d+\)/,
+  )?.groups;
+  const errorMapping: Record<string, ErrorConstructor> = {
+    Error,
+    EvalError,
+    RangeError,
+    ReferenceError,
+    SyntaxError,
+    TypeError,
+    URIError,
+  };
+  const errorType = errorMapping[groups?.type ?? ""] ?? Error;
+  throw new errorType(groups?.message?.trim() ?? "An error occured");
 }
 
 const client = await AppleMusicDiscordRPC.create();
