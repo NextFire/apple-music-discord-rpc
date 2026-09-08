@@ -1,9 +1,6 @@
-#!/usr/bin/env deno run --allow-env --allow-run --allow-net --allow-read --allow-write --allow-ffi --allow-import --unstable-kv
-import type { Activity } from "https://deno.land/x/discord_rpc@0.3.2/mod.ts";
-import { Client } from "https://deno.land/x/discord_rpc@0.3.2/mod.ts";
-import type {} from "https://raw.githubusercontent.com/NextFire/jxa/v0.0.5/run/global.d.ts";
-import { run } from "https://raw.githubusercontent.com/NextFire/jxa/v0.0.5/run/mod.ts";
-import type { iTunes } from "https://raw.githubusercontent.com/NextFire/jxa/v0.0.5/run/types/core.d.ts";
+#!/usr/bin/env deno run --allow-env --allow-run --allow-net --allow-read --allow-write --unstable-kv
+import { Activity, ActivityType, Client } from "./discord.ts";
+import { run } from "./jxa.ts";
 
 //#region RPC
 class AppleMusicDiscordRPC {
@@ -122,14 +119,12 @@ class AppleMusicDiscordRPC {
 
     // EVERYTHING must be less than or equal to 128 chars long
     const activity: Activity = {
-      // @ts-expect-error: "listening to" has been added in recent Discord versions
-      type: 2,
+      type: ActivityType.Listening,
       details: AppleMusicDiscordRPC.ensureValidStringLength(properties.name),
       timestamps: { start, end },
     };
 
     if (properties.artist) {
-      // @ts-expect-error: https://github.com/discord/discord-api-docs/pull/7674
       activity.status_display_type = 1;
       activity.state = AppleMusicDiscordRPC.ensureValidStringLength(
         properties.artist,
@@ -140,10 +135,7 @@ class AppleMusicDiscordRPC {
       const extras = await this.cachedTrackExtras(properties);
       console.log("extras:", extras);
 
-      // @ts-expect-error: https://github.com/discord/discord-api-docs/pull/7674
       activity.details_url = extras.trackViewUrl;
-
-      // @ts-expect-error: https://github.com/discord/discord-api-docs/pull/7674
       activity.state_url = extras.artistViewUrl;
 
       activity.assets = {
@@ -151,7 +143,6 @@ class AppleMusicDiscordRPC {
         large_text: AppleMusicDiscordRPC.ensureValidStringLength(
           properties.album,
         ),
-        // @ts-expect-error: https://github.com/discord/discord-api-docs/pull/7674
         large_url: extras.collectionViewUrl,
       };
 
@@ -227,6 +218,9 @@ await client.run();
 //#endregion
 
 //#region JXA
+// deno-lint-ignore no-explicit-any
+declare const Application: (name: string) => any;
+
 function isDiscordRunning(): Promise<boolean> {
   return run((clientNames: string[]) => {
     const systemEvents = Application("System Events");
@@ -417,6 +411,15 @@ async function litterboxUpload(
 
 //#region TypeScript
 type iTunesAppName = "iTunes" | "Music";
+
+interface iTunes {
+  playerState(): string;
+  playerPosition(): number;
+  currentTrack(): {
+    properties(): iTunesProperties;
+    artworks: { [0]: { rawData(): string } };
+  };
+}
 
 interface iTunesProperties {
   persistentID: string;
