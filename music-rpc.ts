@@ -12,6 +12,13 @@ class AppleMusicDiscordRPC {
   static readonly KV_VERSION = 3;
 
   private startTime!: number;
+  private activityCleared = true;
+  private lastPresence?: {
+    trackId: string;
+    playerPosition: number;
+    observedAt: number;
+    expiresAt?: number;
+  };
 
   /**
    * @private Use `AppleMusicDiscordRPC.create()` instead.
@@ -32,7 +39,6 @@ class AppleMusicDiscordRPC {
       } catch (err) {
         console.error(err);
       }
-      console.log("Reconnecting in %dms", this.defaultTimeout);
       await sleep(this.defaultTimeout);
     }
   }
@@ -45,6 +51,8 @@ class AppleMusicDiscordRPC {
       } finally {
         console.log("Connection to Discord RPC closed");
         this.rpc.ipc = undefined;
+        this.activityCleared = true;
+        this.lastPresence = undefined;
       }
     }
   }
@@ -52,7 +60,6 @@ class AppleMusicDiscordRPC {
   async setActivityLoop(): Promise<void> {
     const discordRunning = await isDiscordRunning();
     if (!discordRunning) {
-      console.log("No Discord client is running");
       return;
     }
     try {
@@ -64,7 +71,6 @@ class AppleMusicDiscordRPC {
           Deno.exit(0);
         }
         const timeout = await this.setActivity();
-        console.log("Next setActivity in %dms", timeout);
         await sleep(timeout);
       }
     } finally {
@@ -74,42 +80,55 @@ class AppleMusicDiscordRPC {
   }
 
   async setActivity(): Promise<number> {
-    const musicRunning = await isMusicRunning(this.appName);
-    console.log("musicRunning:", musicRunning);
+    const musicStatus = await getMusicStatus(this.appName);
 
-    if (!musicRunning) {
-      await this.rpc.clearActivity();
+    if (!musicStatus.running) {
+      await this.clearActivityIfNeeded();
       return this.defaultTimeout;
     }
 
-    const state = await getMusicState(this.appName);
-    console.log("state:", state);
-
-    switch (state) {
+    switch (musicStatus.state) {
       case "playing": {
-        const { activity, delta } = await this.getPlayingActivity();
-        await this.rpc.setActivity(activity);
-        return Math.min(
-          (delta ?? this.defaultTimeout) + 1000,
+        const properties = musicStatus.properties;
+        if (!properties) {
+          await this.clearActivityIfNeeded();
+          return this.defaultTimeout;
+        }
+
+        if (this.shouldRefreshPlayingActivity(properties)) {
+          const { activity, expiresAt } = await this.getPlayingActivity(
+            properties,
+          );
+          await this.rpc.setActivity(activity);
+          this.activityCleared = false;
+          this.lastPresence = {
+            trackId: properties.persistentID,
+            playerPosition: properties.playerPosition,
+            observedAt: Date.now(),
+            expiresAt,
+          };
+        }
+
+        return AppleMusicDiscordRPC.getNextTimeout(
+          properties,
           this.defaultTimeout,
         );
       }
 
       case "paused":
       case "stopped": {
-        await this.rpc.clearActivity();
+        await this.clearActivityIfNeeded();
         return this.defaultTimeout;
       }
 
       default:
-        throw new Error(`Unknown state: ${state}`);
+        throw new Error(`Unknown state: ${musicStatus.state}`);
     }
   }
 
-  async getPlayingActivity(): Promise<{ activity: Activity; delta?: number }> {
-    const properties = await getMusicProperties(this.appName);
-    console.log("properties:", properties);
-
+  async getPlayingActivity(
+    properties: iTunesProperties,
+  ): Promise<{ activity: Activity; expiresAt?: number }> {
     let delta, start, end;
     if (properties.duration) {
       delta = (properties.duration - properties.playerPosition) * 1000;
@@ -131,9 +150,10 @@ class AppleMusicDiscordRPC {
       );
     }
 
+    let expiresAt;
     if (properties.album) {
       const extras = await this.cachedTrackExtras(properties);
-      console.log("extras:", extras);
+      expiresAt = extras.expiresAt;
 
       activity.details_url = extras.trackViewUrl;
       activity.state_url = extras.artistViewUrl;
@@ -161,7 +181,35 @@ class AppleMusicDiscordRPC {
       }
     }
 
-    return { activity, delta };
+    return { activity, expiresAt };
+  }
+
+  async clearActivityIfNeeded(): Promise<void> {
+    if (this.activityCleared) {
+      return;
+    }
+    await this.rpc.clearActivity();
+    this.activityCleared = true;
+    this.lastPresence = undefined;
+  }
+
+  shouldRefreshPlayingActivity(properties: iTunesProperties): boolean {
+    if (this.activityCleared || !this.lastPresence) {
+      return true;
+    }
+    if (this.lastPresence.trackId !== properties.persistentID) {
+      return true;
+    }
+    if (
+      this.lastPresence.expiresAt &&
+      this.lastPresence.expiresAt <= Date.now()
+    ) {
+      return true;
+    }
+
+    const elapsedSeconds = (Date.now() - this.lastPresence.observedAt) / 1000;
+    const expectedPosition = this.lastPresence.playerPosition + elapsedSeconds;
+    return Math.abs(properties.playerPosition - expectedPosition) > 5;
   }
 
   async cachedTrackExtras(properties: iTunesProperties): Promise<TrackExtras> {
@@ -207,6 +255,17 @@ class AppleMusicDiscordRPC {
       return value;
     }
   }
+
+  static getNextTimeout(
+    properties: Pick<iTunesProperties, "duration" | "playerPosition">,
+    defaultTimeout: number,
+  ): number {
+    if (!properties.duration) {
+      return defaultTimeout;
+    }
+    const delta = (properties.duration - properties.playerPosition) * 1000;
+    return Math.min(delta + 1000, defaultTimeout);
+  }
 }
 
 function sleep(ms: number): Promise<void> {
@@ -230,26 +289,31 @@ function isDiscordRunning(): Promise<boolean> {
   }, ["Discord", "Discord PTB", "Discord Canary", "Vesktop"]);
 }
 
-function isMusicRunning(appName: iTunesAppName): Promise<boolean> {
+function getMusicStatus(appName: iTunesAppName): Promise<MusicStatus> {
   return run((appName: iTunesAppName) => {
-    return Application("System Events").processes[appName].exists();
-  }, appName);
-}
+    const systemEvents = Application("System Events");
+    if (!systemEvents.processes[appName].exists()) {
+      return { running: false };
+    }
 
-function getMusicState(appName: iTunesAppName): Promise<string> {
-  return run((appName: iTunesAppName) => {
     const music = Application(appName) as unknown as iTunes;
-    return music.playerState();
-  }, appName);
-}
+    const state = music.playerState();
+    if (state !== "playing") {
+      return { running: true, state };
+    }
 
-function getMusicProperties(appName: iTunesAppName): Promise<iTunesProperties> {
-  return run((appName: iTunesAppName) => {
-    const music = Application(appName) as unknown as iTunes;
-    return {
-      ...music.currentTrack().properties(),
-      playerPosition: music.playerPosition(),
-    };
+    try {
+      return {
+        running: true,
+        state,
+        properties: {
+          ...music.currentTrack().properties(),
+          playerPosition: music.playerPosition(),
+        },
+      };
+    } catch {
+      return { running: true, state };
+    }
   }, appName);
 }
 
@@ -411,6 +475,13 @@ async function litterboxUpload(
 
 //#region TypeScript
 type iTunesAppName = "iTunes" | "Music";
+type MusicState = "playing" | "paused" | "stopped";
+
+interface MusicStatus {
+  running: boolean;
+  state?: MusicState;
+  properties?: iTunesProperties;
+}
 
 interface iTunes {
   playerState(): string;
