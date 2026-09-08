@@ -1,7 +1,0 @@
-{
-  "deno.enable": true,
-  "deno.unstable": ["kv"],
-  "[markdown][typescript]": {
-    "editor.defaultFormatter": "denoland.vscode-deno"
-  }
-}
