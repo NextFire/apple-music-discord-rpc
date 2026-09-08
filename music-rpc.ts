@@ -74,20 +74,19 @@ class AppleMusicDiscordRPC {
   }
 
   async setActivity(): Promise<number> {
-    const musicRunning = await isMusicRunning(this.appName);
-    console.log("musicRunning:", musicRunning);
+    const status = await getMusicStatus(this.appName);
+    console.log("status:", status);
 
-    if (!musicRunning) {
+    if (!status.running) {
       await this.rpc.clearActivity();
       return this.defaultTimeout;
     }
 
-    const state = await getMusicState(this.appName);
-    console.log("state:", state);
-
-    switch (state) {
+    switch (status.state) {
       case "playing": {
-        const { activity, delta } = await this.getPlayingActivity();
+        const { activity, delta } = await this.getPlayingActivity(
+          status.properties!,
+        );
         await this.rpc.setActivity(activity);
         return Math.min(
           (delta ?? this.defaultTimeout) + 1000,
@@ -102,12 +101,13 @@ class AppleMusicDiscordRPC {
       }
 
       default:
-        throw new Error(`Unknown state: ${state}`);
+        throw new Error(`Unknown state: ${status.state}`);
     }
   }
 
-  async getPlayingActivity(): Promise<{ activity: Activity; delta?: number }> {
-    const properties = await getMusicProperties(this.appName);
+  async getPlayingActivity(
+    properties: iTunesProperties,
+  ): Promise<{ activity: Activity; delta?: number }> {
     console.log("properties:", properties);
 
     let delta, start, end;
@@ -230,25 +230,30 @@ function isDiscordRunning(): Promise<boolean> {
   }, ["Discord", "Discord PTB", "Discord Canary", "Vesktop"]);
 }
 
-function isMusicRunning(appName: iTunesAppName): Promise<boolean> {
+function getMusicStatus(
+  appName: iTunesAppName,
+): Promise<iTunesStatus> {
   return run((appName: iTunesAppName) => {
-    return Application("System Events").processes[appName].exists();
-  }, appName);
-}
+    const app = Application(appName) as unknown as iTunes;
 
-function getMusicState(appName: iTunesAppName): Promise<string> {
-  return run((appName: iTunesAppName) => {
-    const music = Application(appName) as unknown as iTunes;
-    return music.playerState();
-  }, appName);
-}
+    // Music's AppleScript is slow to error out when the app is not running,
+    // so check the process first via System Events.
+    if (!Application("System Events").processes[appName].exists()) {
+      return { running: false, state: "stopped", properties: undefined };
+    }
 
-function getMusicProperties(appName: iTunesAppName): Promise<iTunesProperties> {
-  return run((appName: iTunesAppName) => {
-    const music = Application(appName) as unknown as iTunes;
+    const state = app.playerState();
+    if (state !== "playing") {
+      return { running: true, state, properties: undefined };
+    }
+
     return {
-      ...music.currentTrack().properties(),
-      playerPosition: music.playerPosition(),
+      running: true,
+      state,
+      properties: {
+        ...app.currentTrack().properties(),
+        playerPosition: app.playerPosition(),
+      },
     };
   }, appName);
 }
@@ -419,6 +424,12 @@ interface iTunes {
     properties(): iTunesProperties;
     artworks: { [0]: { rawData(): string } };
   };
+}
+
+interface iTunesStatus {
+  running: boolean;
+  state: string;
+  properties?: iTunesProperties;
 }
 
 interface iTunesProperties {
