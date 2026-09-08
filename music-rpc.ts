@@ -1,9 +1,217 @@
 #!/usr/bin/env deno run --allow-env --allow-run --allow-net --allow-read --allow-write --allow-ffi --allow-import --unstable-kv
-import type { Activity } from "https://deno.land/x/discord_rpc@0.3.2/mod.ts";
-import { Client } from "https://deno.land/x/discord_rpc@0.3.2/mod.ts";
 import type {} from "https://raw.githubusercontent.com/NextFire/jxa/v0.0.5/run/global.d.ts";
 import { run } from "https://raw.githubusercontent.com/NextFire/jxa/v0.0.5/run/mod.ts";
 import type { iTunes } from "https://raw.githubusercontent.com/NextFire/jxa/v0.0.5/run/types/core.d.ts";
+
+//#region Discord IPC
+/**
+ * Minimal Discord IPC client, inlined from https://deno.land/x/discord_rpc@0.3.2
+ * (MIT) and reduced to the handshake and SET_ACTIVITY command used here.
+ *
+ * discord_rpc pulls in `namedpipe` for Windows named pipe support, which imports
+ * https://win32.deno.dev — a Deno Deploy Classic app that was sunset on
+ * 2026-07-20 and now returns 404 for every path. Deno resolves the module graph
+ * eagerly, so that Windows-only transport broke `deno run` on macOS even though
+ * it can never be reached here. This project targets the macOS Music and iTunes
+ * apps, so only the Unix socket transport is kept.
+ */
+
+interface Activity {
+  details?: string;
+  state?: string;
+  assets?: {
+    large_image?: string;
+    large_text?: string;
+    small_image?: string;
+    small_text?: string;
+  };
+  party?: {
+    id?: string;
+    size?: number;
+  };
+  timestamps?: {
+    start?: number;
+    end?: number;
+  };
+  secrets?: {
+    match?: string;
+    join?: string;
+    spectate?: string;
+  };
+  buttons?: {
+    label?: string;
+    url?: string;
+  }[];
+}
+
+enum OpCode {
+  HANDSHAKE,
+  FRAME,
+  CLOSE,
+  PING,
+  PONG,
+}
+
+interface PromiseController {
+  resolve: CallableFunction;
+  reject: CallableFunction;
+}
+
+function encode(op: OpCode, payloadString: string): Uint8Array {
+  const payload = new TextEncoder().encode(payloadString);
+  const data = new Uint8Array(4 + 4 + payload.byteLength);
+  const view = new DataView(data.buffer);
+  view.setInt32(0, op, true);
+  view.setInt32(4, payload.byteLength, true);
+  data.set(payload, 8);
+  return data;
+}
+
+function getIPCPath(id: number): string {
+  if (id < 0 || id > 9) throw new RangeError("IPC ID must be between 0-9");
+  const prefix = Deno.env.get("XDG_RUNTIME_DIR") ?? Deno.env.get("TMPDIR") ??
+    Deno.env.get("TMP") ?? Deno.env.get("TEMP") ?? "/tmp";
+  return `${prefix}/discord-ipc-${id}`;
+}
+
+async function findIPC(id = 0): Promise<Deno.Conn> {
+  const path = getIPCPath(id);
+  try {
+    return await Deno.connect({ path, transport: "unix" });
+  } catch (_) {
+    return findIPC(id + 1);
+  }
+}
+
+class DiscordIPC {
+  #conn: Deno.Conn;
+  #header = new Uint8Array(8);
+  #headerView = new DataView(this.#header.buffer);
+  #commandQueue = new Map<string, PromiseController>();
+  #readyHandle?: PromiseController;
+  #closed = false;
+
+  constructor(conn: Deno.Conn) {
+    this.#conn = conn;
+    this.#startEventLoop();
+  }
+
+  static async connect(): Promise<DiscordIPC> {
+    return new DiscordIPC(await findIPC());
+  }
+
+  /** Performs the initial handshake. */
+  login(clientID: string): Promise<unknown> {
+    return new Promise((resolve, reject) => {
+      this.#readyHandle = { resolve, reject };
+      this.#send(OpCode.HANDSHAKE, { v: "1", client_id: clientID }).catch(
+        reject,
+      );
+    });
+  }
+
+  /**
+   * Sends a managed command, resolving with Discord's response or rejecting
+   * when an ERROR event comes back instead.
+   */
+  sendCommand<T = unknown>(
+    cmd: string,
+    args: Record<string, unknown>,
+  ): Promise<T> {
+    return new Promise((resolve, reject) => {
+      const nonce = crypto.randomUUID();
+      this.#commandQueue.set(nonce, { resolve, reject });
+      this.#send(OpCode.FRAME, { cmd, args, nonce }).catch(reject);
+    });
+  }
+
+  close(): void {
+    this.#closed = true;
+    this.#conn.close();
+  }
+
+  async #send(op: OpCode, payload: Record<string, unknown>): Promise<void> {
+    await this.#conn.write(encode(op, JSON.stringify(payload)));
+  }
+
+  #startEventLoop(): void {
+    (async () => {
+      try {
+        while (!this.#closed) {
+          await this.#read();
+        }
+      } catch (_) {
+        this.#closed = true;
+      }
+    })();
+  }
+
+  async #readExact(buffer: Uint8Array): Promise<void> {
+    let offset = 0;
+    while (offset < buffer.byteLength) {
+      const read = await this.#conn.read(buffer.subarray(offset));
+      if (read === null) throw new Error("Connection closed");
+      offset += read;
+    }
+  }
+
+  async #read(): Promise<void> {
+    await this.#readExact(this.#header);
+    const op = this.#headerView.getInt32(0, true) as OpCode;
+    const data = new Uint8Array(this.#headerView.getInt32(4, true));
+    await this.#readExact(data);
+    const payload = JSON.parse(new TextDecoder().decode(data));
+
+    const handle = this.#commandQueue.get(payload.nonce);
+    if (handle) {
+      if (payload.evt === "ERROR") {
+        handle.reject(
+          new Error(`(${payload.data.code}) ${payload.data.message}`),
+        );
+      } else {
+        handle.resolve(payload.data);
+      }
+      this.#commandQueue.delete(payload.nonce);
+    } else if (payload.cmd === "DISPATCH" && payload.evt === "READY") {
+      this.#readyHandle?.resolve(payload.data);
+      this.#readyHandle = undefined;
+    } else if (op === OpCode.CLOSE && payload.code === 4000) {
+      this.#readyHandle?.reject(
+        new Error(`Connection closed (${payload.code}): ${payload.message}`),
+      );
+      this.#readyHandle = undefined;
+    }
+  }
+}
+
+class Client {
+  ipc?: DiscordIPC;
+
+  constructor(public options: { id: string }) {}
+
+  async connect(): Promise<this> {
+    this.ipc = await DiscordIPC.connect();
+    await this.ipc.login(this.options.id);
+    return this;
+  }
+
+  /** Sets the presence activity, or clears it when omitted. */
+  setActivity(activity?: Activity): Promise<unknown> {
+    return this.ipc!.sendCommand("SET_ACTIVITY", {
+      pid: Deno.pid,
+      activity,
+    });
+  }
+
+  clearActivity(): Promise<unknown> {
+    return this.setActivity();
+  }
+
+  close(): void {
+    this.ipc!.close();
+  }
+}
+//#endregion
 
 //#region RPC
 class AppleMusicDiscordRPC {
