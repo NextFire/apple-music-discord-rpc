@@ -31,32 +31,23 @@ export function run<R>(
 
 const runInOsascript = async (code: string, args: any[]) => {
   const cmd = new Deno.Command("osascript", {
-    args: ["-l", "JavaScript"],
+    args: ["-l", "JavaScript", "-e", code],
     env: { OSA_ARGS: JSON.stringify(args) },
-    stdin: "piped",
+    stdin: "null",
     stdout: "piped",
     stderr: "piped",
   });
-  const process = cmd.spawn();
+  const { stdout: output, stderr: error } = await cmd.output();
 
-  const encoder = new TextEncoder();
   const decoder = new TextDecoder();
 
-  const writer = process.stdin.getWriter();
-  await writer.write(encoder.encode(code));
-  writer.releaseLock();
-  await process.stdin.close();
-
-  const { stderr: error, stdout: output } = await process.output();
-
   if (error.length) handleError(decoder.decode(error));
-  const outStr = decoder.decode(output);
   if (!output.length) return undefined;
+  const outStr = decoder.decode(output).trim();
   try {
-    const result = JSON.parse(outStr.trim()).result;
-    return result;
+    return JSON.parse(outStr).result;
   } catch {
-    return outStr.trim();
+    return outStr;
   }
 };
 
