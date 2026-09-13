@@ -388,7 +388,15 @@ async function uploadedLocalArtworkUrl(
   appName: iTunesAppName,
 ): Promise<{ url: string; expiresAt: number } | undefined> {
   const localArtwork = await getAlbumArtwork(appName);
-  return localArtwork ? await litterboxUpload(localArtwork) : undefined;
+  if (!localArtwork) {
+    return undefined;
+  }
+  try {
+    return await litterboxUpload(localArtwork);
+  } catch (err) {
+    console.error("Failed to upload local artwork:", err);
+    return undefined;
+  }
 }
 
 async function litterboxUpload(
@@ -397,7 +405,11 @@ async function litterboxUpload(
   const formData = new FormData();
   formData.append("reqtype", "fileupload");
   formData.append("time", "1h");
-  formData.append("fileToUpload", blob, "artwork.jpg");
+  formData.append(
+    "fileToUpload",
+    blob,
+    `artwork.${blob.type.replace("image/", "")}`,
+  );
   const response = await fetch(
     "https://litterbox.catbox.moe/resources/internals/api.php",
     {
