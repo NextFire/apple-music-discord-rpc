@@ -11,8 +11,6 @@ class AppleMusicDiscordRPC {
   // Increment after TrackExtras update
   static readonly KV_VERSION = 3;
 
-  private startTime!: number;
-
   /**
    * @private Use `AppleMusicDiscordRPC.create()` instead.
    */
@@ -21,11 +19,9 @@ class AppleMusicDiscordRPC {
     private readonly rpc: Client,
     private readonly kv: Deno.Kv,
     private readonly defaultTimeout: number = 15 * 1000,
-    private readonly maxRuntime: number = 24 * 60 * 60 * 1000, // 24 hours
   ) {}
 
   async run(): Promise<void> {
-    this.startTime = Date.now();
     while (true) {
       try {
         await this.setActivityLoop();
@@ -59,10 +55,6 @@ class AppleMusicDiscordRPC {
       await this.rpc.connect();
       console.log("Connected to Discord RPC");
       while (true) {
-        if (Date.now() - this.startTime >= this.maxRuntime) {
-          console.log("Max runtime reached, restarting to clear memory");
-          Deno.exit(0);
-        }
         const timeout = await this.setActivity();
         console.log("Next setActivity in %dms", timeout);
         await sleep(timeout);
