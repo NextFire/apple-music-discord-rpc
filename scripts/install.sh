@@ -15,6 +15,7 @@ DENO_PATH_DIR="$(dirname "$DENO_PATH")"
 echo --- Copy launch agent plist
 mkdir ~/Library/LaunchAgents/ || true
 cp -f scripts/moe.yuru.music-rpc.plist ~/Library/LaunchAgents/
+xattr -d com.apple.quarantine ~/Library/LaunchAgents/moe.yuru.music-rpc.plist
 echo --- Edit launch agent plist
 # /usr/bin is for osascript
 plutil -replace EnvironmentVariables.PATH -string "$DENO_PATH_DIR:/usr/bin" ~/Library/LaunchAgents/moe.yuru.music-rpc.plist
