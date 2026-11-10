@@ -109,7 +109,6 @@ class AppleMusicDiscordRPC {
       end = Math.ceil(Date.now() + delta);
     }
 
-    // EVERYTHING must be less than or equal to 128 chars long
     const activity: Activity = {
       type: ActivityType.Listening,
       details: AppleMusicDiscordRPC.ensureValidStringLength(properties.name),
@@ -127,15 +126,21 @@ class AppleMusicDiscordRPC {
       const extras = await this.cachedTrackExtras(properties);
       console.log("extras:", extras);
 
-      activity.details_url = extras.trackViewUrl;
-      activity.state_url = extras.artistViewUrl;
+      activity.details_url = AppleMusicDiscordRPC.validActivityUrl(
+        extras.trackViewUrl,
+      );
+      activity.state_url = AppleMusicDiscordRPC.validActivityUrl(
+        extras.artistViewUrl,
+      );
 
       activity.assets = {
         large_image: extras.artworkUrl,
         large_text: AppleMusicDiscordRPC.ensureValidStringLength(
           properties.album,
         ),
-        large_url: extras.collectionViewUrl,
+        large_url: AppleMusicDiscordRPC.validActivityUrl(
+          extras.collectionViewUrl,
+        ),
       };
 
       const buttons: NonNullable<Activity["buttons"]> = [];
@@ -184,6 +189,10 @@ class AppleMusicDiscordRPC {
     const decoded = new TextDecoder().decode(output.stdout);
     const version = parseFloat(decoded.match(/\d+\.\d+/)![0]);
     return version;
+  }
+
+  static validActivityUrl(url: string | undefined): string | undefined {
+    return url && url.length <= 256 ? url : undefined;
   }
 
   static ensureValidStringLength(
