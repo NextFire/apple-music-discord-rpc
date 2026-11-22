@@ -332,6 +332,11 @@ async function fetchTrackExtras(
     extras.expiresAt = uploaded?.expiresAt;
   }
 
+  // Don't cache a miss forever: retry the lookup later.
+  if (!extras.artworkUrl) {
+    extras.expiresAt = Date.now() + 60 * 60 * 1000; // 1 hour
+  }
+
   return extras;
 }
 
