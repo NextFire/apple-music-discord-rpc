@@ -307,7 +307,8 @@ async function fetchTrackExtras(
   properties: iTunesProperties,
 ): Promise<TrackExtras> {
   const json = await iTunesSearch(properties);
-  const result = findMatchingResult(properties, json);
+  const result = findMatchingResult(properties, json) ??
+    await iTunesAlbumSearch(properties);
 
   // If no results and album has parenthetical suffix, retry without it
   // e.g. "Album (Deluxe Edition)" -> "Album"
@@ -362,6 +363,47 @@ async function iTunesSearch(
     resp.body?.cancel();
     await sleep(200);
   }
+}
+
+// The combined "name artist album" search sometimes misses an album entirely
+// while a search for the album name alone finds it. Artist names are
+// localized in the JP store, so this uses the US store to compare them.
+async function iTunesAlbumSearch(
+  { name, artist, album }: iTunesProperties,
+): Promise<iTunesSearchResult | undefined> {
+  const params = new URLSearchParams({
+    media: "music",
+    entity: "song",
+    term: album,
+    country: "US",
+  });
+  const resp = await fetch(`https://itunes.apple.com/search?${params}`);
+  if (!resp.ok) {
+    resp.body?.cancel();
+    return undefined;
+  }
+  const json = (await resp.json()) as iTunesSearchResponse;
+  const albumLower = album.toLowerCase();
+  const artistLower = artist.toLowerCase();
+  const hits = json.results.filter(
+    (r) =>
+      r.collectionName.toLowerCase() === albumLower &&
+      r.artistName.toLowerCase().includes(artistLower),
+  );
+  if (new Set(hits.map((r) => r.collectionId)).size !== 1) {
+    return undefined;
+  }
+  const nameLower = name.toLowerCase();
+  return hits.find((r) => r.trackName.toLowerCase().includes(nameLower)) ??
+    albumResult(hits[0]);
+}
+
+// Song results' collectionViewUrl selects that song (?i=); drop it so the
+// links open the album rather than a different track.
+function albumResult(r: iTunesSearchResult): iTunesSearchResult {
+  const url = new URL(r.collectionViewUrl);
+  url.searchParams.delete("i");
+  return { ...r, collectionViewUrl: url.href, trackViewUrl: url.href };
 }
 
 function findMatchingResult(
@@ -470,6 +512,8 @@ interface iTunesSearchResponse {
 
 interface iTunesSearchResult {
   trackName: string;
+  artistName: string;
+  collectionId: number;
   collectionName: string;
   artworkUrl100: string;
   artistViewUrl: string;
