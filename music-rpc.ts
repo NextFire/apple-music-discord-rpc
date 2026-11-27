@@ -306,8 +306,10 @@ async function fetchTrackExtras(
   appName: iTunesAppName,
   properties: iTunesProperties,
 ): Promise<TrackExtras> {
-  const json = await iTunesSearch(properties);
-  const result = findMatchingResult(properties, json);
+  // The artist and album search checks both, so try it before the looser
+  // combined search, which can pick covers and tribute albums.
+  const result = await iTunesAlbumSearch(properties) ??
+    findMatchingResult(properties, await iTunesSearch(properties));
 
   // If no results and album has parenthetical suffix, retry without it
   // e.g. "Album (Deluxe Edition)" -> "Album"
@@ -329,6 +331,11 @@ async function fetchTrackExtras(
     const uploaded = await uploadedLocalArtworkUrl(appName);
     extras.artworkUrl = uploaded?.url;
     extras.expiresAt = uploaded?.expiresAt;
+  }
+
+  // Don't cache a miss forever: retry the lookup later.
+  if (!extras.artworkUrl) {
+    extras.expiresAt = Date.now() + 60 * 60 * 1000; // 1 hour
   }
 
   return extras;
@@ -364,6 +371,47 @@ async function iTunesSearch(
   }
 }
 
+// Search the artist and album, keeping only results whose album name matches
+// exactly and whose artist contains the track's artist. Artist and album
+// names are localized in the JP store, so this uses the US store.
+async function iTunesAlbumSearch(
+  { name, artist, album }: iTunesProperties,
+): Promise<iTunesSearchResult | undefined> {
+  const params = new URLSearchParams({
+    media: "music",
+    entity: "song",
+    term: `${artist} ${album}`,
+    country: "US",
+  });
+  const resp = await fetch(`https://itunes.apple.com/search?${params}`);
+  if (!resp.ok) {
+    resp.body?.cancel();
+    return undefined;
+  }
+  const json = (await resp.json()) as iTunesSearchResponse;
+  const albumLower = album.toLowerCase();
+  const artistLower = artist.toLowerCase();
+  const hits = json.results.filter(
+    (r) =>
+      r.collectionName.toLowerCase() === albumLower &&
+      r.artistName.toLowerCase().includes(artistLower),
+  );
+  if (new Set(hits.map((r) => r.collectionId)).size !== 1) {
+    return undefined;
+  }
+  const nameLower = name.toLowerCase();
+  return hits.find((r) => r.trackName.toLowerCase().includes(nameLower)) ??
+    albumResult(hits[0]);
+}
+
+// Song results' collectionViewUrl selects that song (?i=); drop it so the
+// links open the album rather than a different track.
+function albumResult(r: iTunesSearchResult): iTunesSearchResult {
+  const url = new URL(r.collectionViewUrl);
+  url.searchParams.delete("i");
+  return { ...r, collectionViewUrl: url.href, trackViewUrl: url.href };
+}
+
 function findMatchingResult(
   properties: iTunesProperties,
   json: iTunesSearchResponse | undefined,
@@ -381,8 +429,22 @@ function findMatchingResult(
   return json.results.find(
     (r) =>
       r.collectionName.toLowerCase().includes(albumLower) &&
-      r.trackName.toLowerCase().includes(nameLower),
+      r.trackName.toLowerCase().includes(nameLower) &&
+      durationMatches(properties, r),
   );
+}
+
+// Cover and tribute albums can contain both the album and the track name
+// (e.g. "MCP Performs the 1975: A Brief Inquiry Into Online Relationships");
+// their tracks rarely have the same length as the playing one.
+function durationMatches(
+  { duration }: iTunesProperties,
+  { trackTimeMillis }: iTunesSearchResult,
+): boolean {
+  if (!duration || !trackTimeMillis) {
+    return true;
+  }
+  return Math.abs(trackTimeMillis / 1000 - duration) <= 5;
 }
 
 async function uploadedLocalArtworkUrl(
@@ -470,6 +532,9 @@ interface iTunesSearchResponse {
 
 interface iTunesSearchResult {
   trackName: string;
+  trackTimeMillis?: number;
+  artistName: string;
+  collectionId: number;
   collectionName: string;
   artworkUrl100: string;
   artistViewUrl: string;
